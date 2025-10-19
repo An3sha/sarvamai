@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sarvam AI Agent Widget - Example</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .demo-section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+        
+        .demo-section h3 {
+            margin-top: 0;
+            color: #4F46E5;
+        }
+        
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        
+        .highlight {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #ffc107;
+            margin: 15px 0;
+        }
+        
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .feature-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .feature-list li:before {
+            content: "✅ ";
+            margin-right: 8px;
+        }
+        
+        .config-example {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .button {
+            background: #4F46E5;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+            transition: background 0.3s ease;
+        }
+        
+        .button:hover {
+            background: #3730a3;
+        }
+        
+        .button.secondary {
+            background: #6b7280;
+        }
+        
+        .button.secondary:hover {
+            background: #4b5563;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 Sarvam AI Agent Widget</h1>
+        
+        <div class="demo-section">
+            <h3>🚀 Quick Start</h3>
+            <p>Add the Sarvam AI Agent Widget to your website with just a few lines of code:</p>
+            
+            <div class="code-block">
+&lt;!-- Include React and ReactDOM --&gt;
+&lt;script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"&gt;&lt;/script&gt;
+&lt;script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"&gt;&lt;/script&gt;
+
+&lt;!-- Include the Sarvam Agent Widget --&gt;
+&lt;script src="https://your-cdn.com/sarvam-agent-widget.umd.js"&gt;&lt;/script&gt;
+
+&lt;!-- Configure the widget --&gt;
+&lt;script&gt;
+  window.AgentWidgetConfig = {
+    sarvamApiKey: 'your-api-key-here',
+    position: 'bottom-right',
+    theme: {
+      primaryColor: '#4F46E5',
+      background: '#ffffff',
+      text: '#111827'
+    },
+    agent: {
+      name: 'HelperBot',
+      avatar: 'https://example.com/avatar.png',
+      greeting: 'Hello! How can I help you today?'
+    },
+    enableVoice: true,
+    languages: ['en', 'hi', 'es'],
+    context: 'You are a helpful AI assistant for our website.'
+  };
+&lt;/script&gt;
+            </div>
+        </div>
+        
+        <div class="demo-section">
+            <h3>✨ Features</h3>
+            <ul class="feature-list">
+                <li>Multi-language support (English, Hindi, Spanish, and more)</li>
+                <li>Voice input and output capabilities</li>
+                <li>Customizable appearance and positioning</li>
+                <li>Context-aware AI responses</li>
+                <li>Mobile-responsive design</li>
+                <li>Shadow DOM isolation (no CSS conflicts)</li>
+                <li>Easy integration with any website</li>
+            </ul>
+        </div>
+        
+        <div class="demo-section">
+            <h3>⚙️ Configuration Options</h3>
+            
+            <div class="config-example">
+                <h4>Basic Configuration:</h4>
+                <div class="code-block">
+window.AgentWidgetConfig = {
+  // Required: Your Sarvam API key
+  sarvamApiKey: 'your-api-key-here',
+  
+  // Optional: Widget position
+  position: 'bottom-right', // 'bottom-left', 'top-right', 'top-left'
+  
+  // Optional: Theme customization
+  theme: {
+    primaryColor: '#4F46E5',
+    background: '#ffffff',
+    text: '#111827',
+    font: 'Inter, system-ui, sans-serif'
+  },
+  
+  // Optional: Agent customization
+  agent: {
+    name: 'HelperBot',
+    avatar: 'https://example.com/avatar.png',
+    greeting: 'Hello! How can I help you today?'
+  },
+  
+  // Optional: Features
+  enableVoice: true,
+  autoOpen: false,
+  showWelcomeMessage: true,
+  
+  // Optional: Supported languages
+  languages: ['en', 'hi', 'es'],
+  
+  // Optional: AI context
+  context: 'You are a helpful AI assistant for our website.',
+  
+  // Optional: UI customization
+  placeholder: 'Type your message...',
+  maxMessages: 50
+};
+                </div>
+            </div>
+        </div>
+        
+        <div class="demo-section">
+            <h3>🌍 Language Support</h3>
+            <p>The widget supports multiple languages with native display names and flags:</p>
+            <ul class="feature-list">
+                <li>🇺🇸 English (en)</li>
+                <li>🇮🇳 Hindi (hi) - हिन्दी</li>
+                <li>🇪🇸 Spanish (es) - Español</li>
+                <li>🇫🇷 French (fr) - Français</li>
+                <li>🇩🇪 German (de) - Deutsch</li>
+                <li>🇯🇵 Japanese (ja) - 日本語</li>
+                <li>🇰🇷 Korean (ko) - 한국어</li>
+                <li>🇨🇳 Chinese (zh) - 中文</li>
+                <li>🇸🇦 Arabic (ar) - العربية</li>
+                <li>🇵🇹 Portuguese (pt) - Português</li>
+                <li>🇷🇺 Russian (ru) - Русский</li>
+                <li>🇮🇹 Italian (it) - Italiano</li>
+            </ul>
+        </div>
+        
+        <div class="demo-section">
+            <h3>🎤 Voice Features</h3>
+            <p>The widget includes advanced voice capabilities:</p>
+            <ul class="feature-list">
+                <li>Speech-to-text using browser APIs or Sarvam STT</li>
+                <li>Text-to-speech using browser APIs or Sarvam TTS</li>
+                <li>Multi-language voice recognition</li>
+                <li>Automatic voice response in voice mode</li>
+                <li>Fallback to browser APIs when Sarvam APIs are unavailable</li>
+            </ul>
+        </div>
+        
+        <div class="demo-section">
+            <h3>🔧 Advanced Usage</h3>
+            
+            <h4>Manual Widget Mounting:</h4>
+            <div class="code-block">
+// Mount widget manually
+window.SarvamAgentMount();
+
+// Or with custom configuration
+window.AgentWidgetConfig = { /* your config */ };
+window.SarvamAgentMount();
+            </div>
+            
+            <h4>Dynamic Configuration:</h4>
+            <div class="code-block">
+// Update configuration dynamically
+window.AgentWidgetConfig = {
+  ...window.AgentWidgetConfig,
+  theme: {
+    primaryColor: '#10b981' // Change to green
+  }
+};
+            </div>
+        </div>
+        
+        <div class="demo-section">
+            <h3>📱 Mobile Support</h3>
+            <p>The widget is fully responsive and works great on mobile devices:</p>
+            <ul class="feature-list">
+                <li>Touch-friendly interface</li>
+                <li>Responsive design that adapts to screen size</li>
+                <li>Mobile-optimized voice controls</li>
+                <li>Gesture support for easy interaction</li>
+            </ul>
+        </div>
+        
+        <div class="highlight">
+            <strong>💡 Pro Tip:</strong> The widget uses Shadow DOM to isolate its styles, so it won't interfere with your website's CSS. It's completely self-contained and safe to use on any website.
+        </div>
+        
+        <div style="text-align: center; margin-top: 40px;">
+            <button class="button" onclick="toggleWidget()">Toggle Widget</button>
+            <button class="button secondary" onclick="changeTheme()">Change Theme</button>
+        </div>
+    </div>
+    
+    <!-- Include React and ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Include the Sarvam Agent Widget -->
+    <script src="./dist/sarvam-agent-widget.umd.js"></script>
+    
+    <!-- Configure the widget -->
+    <script>
+        window.AgentWidgetConfig = {
+            // For demo purposes, we'll use fallback mode (no API key)
+            // sarvamApiKey: 'your-api-key-here',
+            position: 'bottom-right',
+            theme: {
+                primaryColor: '#4F46E5',
+                background: '#ffffff',
+                text: '#111827',
+                font: 'Inter, system-ui, sans-serif'
+            },
+            agent: {
+                name: 'DemoBot',
+                avatar: '',
+                greeting: 'Hello! I\'m your demo AI assistant. Try asking me anything!'
+            },
+            enableVoice: true,
+            languages: ['en', 'hi', 'es'],
+            context: 'You are a helpful AI assistant for this demo website. You can help users with general questions and provide information about the Sarvam AI Agent Widget.',
+            autoOpen: false,
+            showWelcomeMessage: true,
+            placeholder: 'Ask me anything...'
+        };
+        
+        // Demo functions
+        function toggleWidget() {
+            // This would require exposing a method from the widget
+            console.log('Toggle widget functionality would be implemented here');
+        }
+        
+        function changeTheme() {
+            const colors = ['#4F46E5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+            
+            window.AgentWidgetConfig = {
+                ...window.AgentWidgetConfig,
+                theme: {
+                    ...window.AgentWidgetConfig.theme,
+                    primaryColor: randomColor
+                }
+            };
+            
+            // Re-mount with new theme
+            window.SarvamAgentMount();
+        }
+    </script>
+</body>
+</html>
