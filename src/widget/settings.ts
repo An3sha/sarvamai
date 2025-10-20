@@ -1,4 +1,5 @@
 // src/widget/settings.ts
+
 export interface AgentConfig {
     position?: 'bottom-right'|'bottom-left'|'top-right'|'top-left';
     theme?: { 
@@ -16,29 +17,47 @@ export interface AgentConfig {
     };
     enableVoice?: boolean;
     context?: string;
-    languages?: string[]; // e.g. ['en','hi','es']
+    languages?: string[]; // e.g. ['en','hi','ta'] - now supports all 22 Indian languages
     sarvamApiKey?: string;
     apiKey?: string; // Alternative key name
     autoOpen?: boolean;
     showWelcomeMessage?: boolean;
     maxMessages?: number;
     placeholder?: string;
+    // New translation features
+    enableAutoTranslation?: boolean; // Auto-translate when switching languages
+    translationMode?: 'formal' | 'modern-colloquial' | 'classic-colloquial' | 'code-mixed';
+    enablePreprocessing?: boolean; // Enable preprocessing for better translations
   }
 
-  // Language configurations with display names and flags
+  // Enhanced language configurations using Sarvam's supported languages
   export const LANGUAGE_CONFIG = {
+    // Core Indian languages (most popular)
     'en': { name: 'English', flag: '🇺🇸', native: 'English' },
     'hi': { name: 'Hindi', flag: '🇮🇳', native: 'हिन्दी' },
-    'es': { name: 'Spanish', flag: '🇪🇸', native: 'Español' },
-    'fr': { name: 'French', flag: '🇫🇷', native: 'Français' },
-    'de': { name: 'German', flag: '🇩🇪', native: 'Deutsch' },
-    'ja': { name: 'Japanese', flag: '🇯🇵', native: '日本語' },
-    'ko': { name: 'Korean', flag: '🇰🇷', native: '한국어' },
-    'zh': { name: 'Chinese', flag: '🇨🇳', native: '中文' },
-    'ar': { name: 'Arabic', flag: '🇸🇦', native: 'العربية' },
-    'pt': { name: 'Portuguese', flag: '🇵🇹', native: 'Português' },
-    'ru': { name: 'Russian', flag: '🇷🇺', native: 'Русский' },
-    'it': { name: 'Italian', flag: '🇮🇹', native: 'Italiano' }
+    'ta': { name: 'Tamil', flag: '🇮🇳', native: 'தமிழ்' },
+    'te': { name: 'Telugu', flag: '🇮🇳', native: 'తెలుగు' },
+    'bn': { name: 'Bengali', flag: '🇮🇳', native: 'বাংলা' },
+    'gu': { name: 'Gujarati', flag: '🇮🇳', native: 'ગુજરાતી' },
+    'kn': { name: 'Kannada', flag: '🇮🇳', native: 'ಕನ್ನಡ' },
+    'ml': { name: 'Malayalam', flag: '🇮🇳', native: 'മലയാളം' },
+    'mr': { name: 'Marathi', flag: '🇮🇳', native: 'मराठी' },
+    'pa': { name: 'Punjabi', flag: '🇮🇳', native: 'ਪੰਜਾਬੀ' },
+    'or': { name: 'Odia', flag: '🇮🇳', native: 'ଓଡ଼ିଆ' },
+    'as': { name: 'Assamese', flag: '🇮🇳', native: 'অসমীয়া' },
+    
+    // Additional Indian languages
+    'brx': { name: 'Bodo', flag: '🇮🇳', native: 'बड़ो' },
+    'doi': { name: 'Dogri', flag: '🇮🇳', native: 'डोगरी' },
+    'kok': { name: 'Konkani', flag: '🇮🇳', native: 'कोंकणी' },
+    'ks': { name: 'Kashmiri', flag: '🇮🇳', native: 'کٲشُر' },
+    'mai': { name: 'Maithili', flag: '🇮🇳', native: 'मैथिली' },
+    'mni': { name: 'Manipuri', flag: '🇮🇳', native: 'ꯃꯤꯇꯩꯂꯣꯟ' },
+    'ne': { name: 'Nepali', flag: '🇮🇳', native: 'नेपाली' },
+    'sa': { name: 'Sanskrit', flag: '🇮🇳', native: 'संस्कृतम्' },
+    'sat': { name: 'Santali', flag: '🇮🇳', native: 'ᱥᱟᱱᱛᱟᱲᱤ' },
+    'sd': { name: 'Sindhi', flag: '🇮🇳', native: 'سنڌي' },
+    'ur': { name: 'Urdu', flag: '🇮🇳', native: 'اردو' }
   };
   
   export const defaultConfig: AgentConfig = {
@@ -58,11 +77,15 @@ export interface AgentConfig {
     },
     enableVoice: true,
     context: 'You are a helpful AI assistant. Please provide clear, accurate, and helpful responses to user questions.',
-    languages: ['en', 'hi', 'es'],
+    languages: ['en', 'hi', 'ta', 'te', 'bn'], // Popular Indian languages
     autoOpen: false,
     showWelcomeMessage: true,
     maxMessages: 50,
-    placeholder: 'Type your message...'
+    placeholder: 'Type your message...',
+    // New translation features
+    enableAutoTranslation: true, // Auto-translate when switching languages
+    translationMode: 'formal', // Use formal translation mode
+    enablePreprocessing: true // Enable preprocessing for better translations
   };
   
   export function loadConfig(): AgentConfig {

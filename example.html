@@ -140,7 +140,10 @@
       greeting: 'Hello! How can I help you today?'
     },
     enableVoice: true,
-    languages: ['en', 'hi', 'es'],
+    languages: ['en', 'hi', 'ta', 'te', 'bn'], // Popular Indian languages
+    enableAutoTranslation: true, // Auto-translate when switching languages
+    translationMode: 'formal', // Use formal translation mode
+    enablePreprocessing: true, // Better translations for complex text
     context: 'You are a helpful AI assistant for our website.'
   };
 &lt;/script&gt;
@@ -150,7 +153,9 @@
         <div class="demo-section">
             <h3>✨ Features</h3>
             <ul class="feature-list">
-                <li>Multi-language support (English, Hindi, Spanish, and more)</li>
+                <li>Multi-language support (22 Indian languages: English, Hindi, Tamil, Telugu, Bengali, and more)</li>
+                <li>Automatic translation when switching languages</li>
+                <li>Advanced translation modes (formal, colloquial, code-mixed)</li>
                 <li>Voice input and output capabilities</li>
                 <li>Customizable appearance and positioning</li>
                 <li>Context-aware AI responses</li>
@@ -309,7 +314,10 @@ window.AgentWidgetConfig = {
                 greeting: 'Hello! I\'m your demo AI assistant. Try asking me anything!'
             },
             enableVoice: true,
-            languages: ['en', 'hi', 'es'],
+            languages: ['en', 'hi', 'ta', 'te', 'bn'], // Popular Indian languages
+    enableAutoTranslation: true, // Auto-translate when switching languages
+    translationMode: 'formal', // Use formal translation mode
+    enablePreprocessing: true, // Better translations for complex text
             context: 'You are a helpful AI assistant for this demo website. You can help users with general questions and provide information about the Sarvam AI Agent Widget.',
             autoOpen: false,
             showWelcomeMessage: true,

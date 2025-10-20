@@ -11,21 +11,132 @@ interface WidgetAppProps {
 
 export default function WidgetApp({ config }: WidgetAppProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([]);
+  // Separate message histories for chat and voice modes
+  const [chatMessages, setChatMessages] = useState<Message[]>([]);
+  const [voiceMessages, setVoiceMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [currentLanguage, setCurrentLanguage] = useState(config.languages?.[0] || 'en');
   const [isVoiceMode, setIsVoiceMode] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
   const recognitionRef = useRef<{ stop: () => void } | null>(null);
 
-  // Initialize with system context
+  // Debug configuration
+  console.log('🔧 WidgetApp config:', {
+    enableAutoTranslation: config.enableAutoTranslation,
+    translationMode: config.translationMode,
+    enablePreprocessing: config.enablePreprocessing,
+    languages: config.languages,
+    fullConfig: config
+  });
+
+  // Get current messages based on mode
+  const currentMessages = isVoiceMode ? voiceMessages : chatMessages;
+  const setCurrentMessages = isVoiceMode ? setVoiceMessages : setChatMessages;
+
+  // Initialize with system context for both chat and voice
   useEffect(() => {
     if (config.context) {
-      setMessages([{ role: 'system', content: config.context }]);
+      const systemMessage = { role: 'system' as const, content: config.context };
+      setChatMessages([systemMessage]);
+      setVoiceMessages([systemMessage]);
     }
   }, [config.context]);
 
   const toggleWidget = () => setIsOpen(!isOpen);
+
+  // Handle language change with automatic translation
+  const handleLanguageChange = async (newLanguage: string) => {
+    const previousLanguage = currentLanguage;
+    setCurrentLanguage(newLanguage);
+    
+    // Auto-translate existing messages if enabled and there are messages to translate
+    // Default to true if not specified
+    const shouldAutoTranslate = config.enableAutoTranslation !== false;
+    
+    console.log('🔍 Translation check:', {
+      enableAutoTranslation: config.enableAutoTranslation,
+      shouldAutoTranslate: shouldAutoTranslate,
+      chatMessagesLength: chatMessages.length,
+      voiceMessagesLength: voiceMessages.length,
+      shouldTranslate: shouldAutoTranslate && (chatMessages.length > 1 || voiceMessages.length > 1)
+    });
+    
+    if (shouldAutoTranslate && (chatMessages.length > 1 || voiceMessages.length > 1)) {
+      setIsTranslating(true);
+      try {
+        console.log(`🔄 Translating conversations from ${previousLanguage} to ${newLanguage}`);
+        console.log(`📊 Chat messages: ${chatMessages.length}, Voice messages: ${voiceMessages.length}`);
+        
+        const { translateMessages } = await import('./api');
+        
+        // Translate both chat and voice messages if they have content beyond system message
+        const chatToTranslate = chatMessages.length > 1 ? chatMessages : [];
+        const voiceToTranslate = voiceMessages.length > 1 ? voiceMessages : [];
+        
+        const [translatedChatMessages, translatedVoiceMessages] = await Promise.all([
+          chatToTranslate.length > 0 ? translateMessages(chatToTranslate, newLanguage, previousLanguage) : Promise.resolve(chatMessages),
+          voiceToTranslate.length > 0 ? translateMessages(voiceToTranslate, newLanguage, previousLanguage) : Promise.resolve(voiceMessages)
+        ]);
+        
+        setChatMessages(translatedChatMessages);
+        setVoiceMessages(translatedVoiceMessages);
+        console.log('✅ Conversations translated successfully');
+      } catch (error) {
+        console.warn('Translation failed, keeping original messages:', error);
+        // Keep original messages if translation fails
+      } finally {
+        setIsTranslating(false);
+      }
+    } else {
+      console.log('🔄 Language changed to', newLanguage, '- No translation needed (no messages or auto-translation disabled)');
+      console.log('📊 Translation skipped:', {
+        shouldAutoTranslate,
+        chatMessagesLength: chatMessages.length,
+        voiceMessagesLength: voiceMessages.length,
+        hasMessages: chatMessages.length > 1 || voiceMessages.length > 1
+      });
+    }
+  };
+
+  const handleVoiceResponse = async (newMessages: Message[]) => {
+    console.log('🎤 Handling voice response for messages:', newMessages);
+    try {
+      const { sendToLLM, sendToLLMFallback } = await import('./api');
+      const { speak } = await import('./voice');
+      
+      let response: string;
+      
+      // Try Sarvam API first, fallback to mock if no API key
+      try {
+        console.log('🤖 Getting AI response...');
+        response = await sendToLLM(newMessages);
+        console.log('🤖 AI response received:', response);
+      } catch (apiError) {
+        console.warn('Sarvam API not available, using fallback:', apiError);
+        response = await sendToLLMFallback(newMessages, currentLanguage);
+      }
+      
+      const assistantMessage: Message = { role: 'assistant', content: response };
+      // Update voice messages specifically
+      setVoiceMessages(prev => [...prev, assistantMessage]);
+
+      // Always speak the response for voice messages
+      if (config.enableVoice) {
+        console.log('🎤 Speaking AI response...');
+        speak(assistantMessage.content, currentLanguage);
+      }
+    } catch (error) {
+      console.error('Error handling voice response:', error);
+      const errorMessage: Message = { 
+        role: 'assistant', 
+        content: 'Sorry, I encountered an error. Please try again.' 
+      };
+      setVoiceMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const getPositionStyles = () => {
     const position = config.position || 'bottom-right';
@@ -64,27 +175,30 @@ export default function WidgetApp({ config }: WidgetAppProps) {
         .widget-container {
           font-family: var(--font-family);
           color: var(--text-color);
+          line-height: 1.5;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
         }
         
         .widget-toggle {
           width: 60px;
           height: 60px;
           border-radius: 50%;
-          background: var(--primary-color);
+          background: linear-gradient(135deg, var(--primary-color), #6366f1);
           border: none;
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-          transition: all 0.3s ease;
+          box-shadow: 0 8px 25px rgba(79, 70, 229, 0.3), 0 4px 12px rgba(0, 0, 0, 0.1);
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           position: relative;
           overflow: hidden;
         }
         
         .widget-toggle:hover {
-          transform: scale(1.05);
-          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+          transform: scale(1.05) translateY(-2px);
+          box-shadow: 0 12px 35px rgba(79, 70, 229, 0.4), 0 8px 20px rgba(0, 0, 0, 0.15);
         }
         
         .widget-toggle img {
@@ -113,50 +227,87 @@ export default function WidgetApp({ config }: WidgetAppProps) {
           width: 380px;
           height: 500px;
           background: var(--background-color);
-          border-radius: 16px;
-          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-          border: 1px solid rgba(0, 0, 0, 0.08);
+          border-radius: 20px;
+          box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15), 0 8px 25px rgba(0, 0, 0, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          backdrop-filter: blur(10px);
           display: flex;
           flex-direction: column;
           overflow: hidden;
           transform: ${isOpen ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.95)'};
           opacity: ${isOpen ? 1 : 0};
-          transition: all 0.3s ease;
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
           pointer-events: ${isOpen ? 'auto' : 'none'};
         }
         
         .widget-header {
-          background: var(--primary-color);
+          background: linear-gradient(135deg, var(--primary-color), #6366f1);
           color: white;
-          padding: 16px 20px;
+          padding: 20px 24px;
           display: flex;
           align-items: center;
           justify-content: space-between;
+          border-radius: 20px 20px 0 0;
+          position: relative;
+          overflow: hidden;
+        }
+        
+        .widget-header::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
+          pointer-events: none;
         }
         
         .widget-header h3 {
           margin: 0;
-          font-size: 16px;
-          font-weight: 600;
+          font-size: 18px;
+          font-weight: 700;
+          letter-spacing: -0.025em;
+          position: relative;
+          z-index: 1;
         }
         
         .language-selector {
-          background: rgba(255, 255, 255, 0.2);
-          border: none;
+          background: rgba(255, 255, 255, 0.15);
+          border: 1px solid rgba(255, 255, 255, 0.2);
           color: white;
-          padding: 4px 8px;
-          border-radius: 6px;
-          font-size: 12px;
+          padding: 8px 12px;
+          border-radius: 8px;
+          font-size: 13px;
+          font-weight: 500;
           cursor: pointer;
+          transition: all 0.2s ease;
+          backdrop-filter: blur(10px);
+          position: relative;
+          z-index: 1;
+        }
+        
+        .language-selector:hover {
+          background: rgba(255, 255, 255, 0.25);
+          border-color: rgba(255, 255, 255, 0.3);
         }
         
         .close-btn {
-          background: none;
+          background: rgba(255, 255, 255, 0.1);
           border: none;
           color: white;
           cursor: pointer;
           font-size: 18px;
-          padding: 4px;
+          padding: 8px;
+          border-radius: 8px;
+          transition: all 0.2s ease;
+          position: relative;
+          z-index: 1;
+        }
+        
+        .close-btn:hover {
+          background: rgba(255, 255, 255, 0.2);
+          transform: scale(1.1);
         }
         
         .widget-content {
@@ -168,28 +319,39 @@ export default function WidgetApp({ config }: WidgetAppProps) {
         
         .mode-toggle {
           display: flex;
-          background: #f3f4f6;
-          margin: 12px;
-          border-radius: 8px;
-          padding: 4px;
+          background: #f8fafc;
+          margin: 16px;
+          border-radius: 12px;
+          padding: 6px;
+          border: 1px solid #e2e8f0;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
         
         .mode-btn {
           flex: 1;
-          padding: 8px 12px;
+          padding: 12px 16px;
           border: none;
           background: transparent;
-          border-radius: 6px;
+          border-radius: 8px;
           cursor: pointer;
           font-size: 14px;
-          transition: all 0.2s ease;
+          font-weight: 500;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          color: #64748b;
+          position: relative;
         }
         
         .mode-btn.active {
           background: white;
           color: var(--primary-color);
           font-weight: 600;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          box-shadow: 0 2px 8px rgba(79, 70, 229, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
+          transform: translateY(-1px);
+        }
+        
+        .mode-btn:hover:not(.active) {
+          background: rgba(79, 70, 229, 0.05);
+          color: var(--primary-color);
         }
         
         @media (max-width: 480px) {
@@ -216,20 +378,29 @@ export default function WidgetApp({ config }: WidgetAppProps) {
             <div className="widget-header">
               <div>
                 <h3>{config.agent?.name || 'HelperBot'}</h3>
-                <select 
-                  className="language-selector"
-                  value={currentLanguage}
-                  onChange={(e) => setCurrentLanguage(e.target.value)}
-                >
-                  {config.languages?.map(lang => {
-                    const langInfo = getLanguageInfo(lang);
-                    return (
-                      <option key={lang} value={lang}>
-                        {langInfo.flag} {langInfo.native}
-                      </option>
-                    );
-                  })}
-                </select>
+                <div className="language-selector-container">
+                  <select 
+                    className="language-selector"
+                    value={currentLanguage}
+                    onChange={(e) => handleLanguageChange(e.target.value)}
+                    disabled={isTranslating}
+                  >
+                    {config.languages?.map(lang => {
+                      const langInfo = getLanguageInfo(lang);
+                      return (
+                        <option key={lang} value={lang}>
+                          {langInfo.flag} {langInfo.native} ({langInfo.name})
+                        </option>
+                      );
+                    })}
+                  </select>
+                  {isTranslating && (
+                    <div className="translation-indicator">
+                      <span className="spinner">🔄</span>
+                      <span>Translating...</span>
+                    </div>
+                  )}
+                </div>
               </div>
               <button className="close-btn" onClick={() => setIsOpen(false)}>
                 ×
@@ -255,13 +426,17 @@ export default function WidgetApp({ config }: WidgetAppProps) {
               )}
               
               <ChatPanel 
-                messages={messages}
-                setMessages={setMessages}
+                messages={currentMessages}
+                setMessages={setCurrentMessages}
                 isLoading={isLoading}
                 setIsLoading={setIsLoading}
                 currentLanguage={currentLanguage}
                 isVoiceMode={isVoiceMode}
+                isListening={isListening}
                 config={config}
+                onStopSpeaking={() => {
+                  console.log('🔇 Agent speech stopped by user interaction');
+                }}
               />
               
               {config.enableVoice && isVoiceMode && (
@@ -271,16 +446,80 @@ export default function WidgetApp({ config }: WidgetAppProps) {
                   currentLanguage={currentLanguage}
                   onVoiceResult={(text) => {
                     if (text.trim()) {
-                      setMessages(prev => [...prev, { role: 'user', content: text }]);
+                      const userMessage = { role: 'user' as const, content: text };
+                      const newMessages = [...voiceMessages, userMessage];
+                      setVoiceMessages(newMessages);
+                      
+                      // Trigger AI response for voice messages
+                      setIsLoading(true);
+                      handleVoiceResponse(newMessages);
                     }
                   }}
                   recognitionRef={recognitionRef}
+                  onSendVoice={() => {
+                    console.log('📤 Voice message sent by user');
+                    // The voice result will be handled by onVoiceResult
+                  }}
                 />
               )}
             </div>
           </div>
         )}
       </div>
+      
+      <style>{`
+        .language-selector-container {
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+        
+        .language-selector {
+          padding: 8px 12px;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          background: white;
+          font-size: 14px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        
+        .language-selector:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+        
+        .language-selector:hover:not(:disabled) {
+          border-color: #4F46E5;
+        }
+        
+        .translation-indicator {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 12px;
+          color: #6B7280;
+          padding: 4px 8px;
+          background: #F3F4F6;
+          border-radius: 6px;
+          animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        .spinner {
+          animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.7; }
+        }
+      `}</style>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { startRecognition } from './voice';
+import { stopSpeaking } from './voice';
 
 // Type declarations for Web Speech API
 interface SpeechRecognition extends EventTarget {
@@ -20,10 +21,10 @@ declare const SpeechRecognition: {
   new(): SpeechRecognition;
 } | undefined;
 
-declare const webkitSpeechRecognition: {
-  prototype: SpeechRecognition;
-  new(): SpeechRecognition;
-} | undefined;
+// declare const webkitSpeechRecognition: {
+//   prototype: SpeechRecognition;
+//   new(): SpeechRecognition;
+// } | undefined;
 
 interface VoiceControlsProps {
   isListening: boolean;
@@ -31,6 +32,7 @@ interface VoiceControlsProps {
   currentLanguage: string;
   onVoiceResult: (text: string) => void;
   recognitionRef: React.MutableRefObject<{ stop: () => void } | null>;
+  onSendVoice?: () => void;
 }
 
 export default function VoiceControls({
@@ -38,7 +40,8 @@ export default function VoiceControls({
   setIsListening,
   currentLanguage,
   onVoiceResult,
-  recognitionRef
+  recognitionRef,
+  onSendVoice
 }: VoiceControlsProps) {
   const [isSupported, setIsSupported] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -49,7 +52,7 @@ export default function VoiceControls({
       SpeechRecognition?: typeof SpeechRecognition;
       webkitSpeechRecognition?: typeof SpeechRecognition;
     };
-    const SpeechRecognitionClass = globalWindow.SpeechRecognition || globalWindow.webkitSpeechRecognition;
+    const SpeechRecognitionClass = globalWindow.SpeechRecognition;
     if (!SpeechRecognitionClass) {
       setIsSupported(false);
     }
@@ -57,6 +60,10 @@ export default function VoiceControls({
 
   const startListening = () => {
     if (!isSupported) return;
+
+    // Stop agent speaking when user starts speaking
+    console.log('🔇 Stopping agent speech to listen to user...');
+    stopSpeaking();
 
     setError(null);
     const result = startRecognition(currentLanguage, (text) => {
@@ -71,13 +78,6 @@ export default function VoiceControls({
 
     recognitionRef.current = result as { stop: () => void } | null;
     setIsListening(true);
-
-    // Auto-stop after 10 seconds
-    setTimeout(() => {
-      if (isListening) {
-        stopListening();
-      }
-    }, 10000);
   };
 
   const stopListening = () => {
@@ -95,6 +95,12 @@ export default function VoiceControls({
     }
   };
 
+  const sendVoiceMessage = () => {
+    console.log('📤 Sending voice message...');
+    stopListening();
+    onSendVoice?.();
+  };
+
   if (!isSupported) {
     return (
       <div className="voice-controls">
@@ -110,34 +116,37 @@ export default function VoiceControls({
     <>
       <style>{`
         .voice-controls {
-          padding: 16px;
+          padding: 20px;
           border-top: 1px solid #e5e7eb;
-          background: var(--background-color);
+          background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+          border-radius: 0 0 20px 20px;
         }
         
         .voice-button {
           width: 100%;
-          padding: 16px;
+          padding: 18px 24px;
           border: 2px solid var(--primary-color);
-          border-radius: 12px;
-          background: ${isListening ? 'var(--primary-color)' : 'transparent'};
+          border-radius: 16px;
+          background: ${isListening ? 'linear-gradient(135deg, var(--primary-color), #6366f1)' : 'transparent'};
           color: ${isListening ? 'white' : 'var(--primary-color)'};
           font-size: 16px;
           font-weight: 600;
           cursor: pointer;
-          transition: all 0.3s ease;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 8px;
+          gap: 12px;
           position: relative;
           overflow: hidden;
+          box-shadow: ${isListening ? '0 4px 12px rgba(79, 70, 229, 0.3)' : '0 2px 4px rgba(0, 0, 0, 0.1)'};
         }
         
         .voice-button:hover {
-          background: var(--primary-color);
+          background: linear-gradient(135deg, var(--primary-color), #6366f1);
           color: white;
-          transform: translateY(-1px);
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
         }
         
         .voice-button:active {
@@ -161,18 +170,20 @@ export default function VoiceControls({
         
         .voice-status {
           text-align: center;
-          margin-top: 8px;
-          font-size: 12px;
-          color: #6b7280;
+          margin-top: 12px;
+          font-size: 13px;
+          color: #64748b;
+          font-weight: 500;
         }
         
         .voice-error {
           text-align: center;
-          padding: 16px;
-          background: #fef2f2;
+          padding: 20px;
+          background: linear-gradient(135deg, #fef2f2, #fee2e2);
           border: 1px solid #fecaca;
-          border-radius: 8px;
+          border-radius: 12px;
           color: #dc2626;
+          box-shadow: 0 2px 4px rgba(220, 38, 38, 0.1);
         }
         
         .voice-error p {
@@ -195,18 +206,63 @@ export default function VoiceControls({
           100% { transform: translateX(100%); }
         }
         
-        .voice-instructions {
-          margin-top: 12px;
-          padding: 12px;
-          background: #f8f9fa;
-          border-radius: 8px;
-          font-size: 13px;
-          color: #6b7280;
-          text-align: center;
+        .send-button {
+          flex: 1;
+          padding: 14px 20px;
+          border: none;
+          border-radius: 12px;
+          background: linear-gradient(135deg, #10b981, #059669);
+          color: white;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
         }
         
-        .voice-instructions p {
-          margin: 4px 0;
+        .send-button:hover {
+          background: linear-gradient(135deg, #059669, #047857);
+          transform: translateY(-1px);
+          box-shadow: 0 4px 8px rgba(16, 185, 129, 0.4);
+        }
+        
+        .send-button:active {
+          transform: translateY(0);
+        }
+        
+        .voice-actions {
+          display: flex;
+          gap: 16px;
+          margin-top: 20px;
+        }
+        
+        .stop-button {
+          flex: 1;
+          padding: 14px 20px;
+          border: 2px solid #ef4444;
+          border-radius: 12px;
+          background: transparent;
+          color: #ef4444;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          box-shadow: 0 2px 4px rgba(239, 68, 68, 0.1);
+        }
+        
+        .stop-button:hover {
+          background: linear-gradient(135deg, #ef4444, #dc2626);
+          color: white;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
         }
       `}</style>
       
@@ -228,20 +284,19 @@ export default function VoiceControls({
               {isListening ? 'Listening...' : 'Tap to speak'}
             </button>
             
-            <div className="voice-status">
-              {isListening ? (
-                <p>Speak now... (auto-stops in 10s)</p>
-              ) : (
-                <p>Click the microphone to start voice input</p>
-              )}
-            </div>
+         
             
-            <div className="voice-instructions">
-              <p><strong>💡 Tips:</strong></p>
-              <p>• Speak clearly and at normal pace</p>
-              <p>• The system will auto-stop after 10 seconds</p>
-              <p>• Click again to stop manually</p>
-            </div>
+            {isListening && (
+              <div className="voice-actions">
+               
+                <button
+                  className="send-button"
+                  onClick={sendVoiceMessage}
+                >
+                  📤 Send
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>

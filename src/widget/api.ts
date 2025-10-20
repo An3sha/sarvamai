@@ -23,23 +23,65 @@ const getApiKey = () => {
          '';
 };
 
-// Language mapping for Sarvam API (based on official documentation)
+// Enhanced language mapping for Sarvam API (based on official documentation)
+// Supports all 22 scheduled languages of India
 const LANGUAGE_MAP: Record<string, string> = {
-  'en': 'en-IN',
-  'hi': 'hi-IN',
-  'ta': 'ta-IN',
-  'te': 'te-IN',
-  'bn': 'bn-IN',
-  'gu': 'gu-IN',
-  'kn': 'kn-IN',
-  'ml': 'ml-IN',
-  'mr': 'mr-IN',
-  'pa': 'pa-IN',
-  'or': 'or-IN',
-  'as': 'as-IN'
+  // Core languages (mayura:v1 and sarvam-translate:v1)
+  'en': 'en-IN',    // English
+  'hi': 'hi-IN',    // Hindi
+  'ta': 'ta-IN',    // Tamil
+  'te': 'te-IN',    // Telugu
+  'bn': 'bn-IN',    // Bengali
+  'gu': 'gu-IN',    // Gujarati
+  'kn': 'kn-IN',    // Kannada
+  'ml': 'ml-IN',    // Malayalam
+  'mr': 'mr-IN',    // Marathi
+  'pa': 'pa-IN',    // Punjabi
+  'or': 'od-IN',    // Odia
+  'as': 'as-IN',    // Assamese
+  
+  // Newly added languages (sarvam-translate:v1)
+  'brx': 'brx-IN',  // Bodo
+  'doi': 'doi-IN',  // Dogri
+  'kok': 'kok-IN',  // Konkani
+  'ks': 'ks-IN',    // Kashmiri
+  'mai': 'mai-IN',  // Maithili
+  'mni': 'mni-IN',  // Manipuri (Meiteilon)
+  'ne': 'ne-IN',    // Nepali
+  'sa': 'sa-IN',    // Sanskrit
+  'sat': 'sat-IN',  // Santali
+  'sd': 'sd-IN',    // Sindhi
+  'ur': 'ur-IN'     // Urdu
 };
 
-export async function sendToLLM(messages: Message[], language = 'en'): Promise<string> {
+// Language display names for UI
+export const LANGUAGE_NAMES: Record<string, { native: string; english: string; flag: string }> = {
+  'en': { native: 'English', english: 'English', flag: '🇺🇸' },
+  'hi': { native: 'हिन्दी', english: 'Hindi', flag: '🇮🇳' },
+  'ta': { native: 'தமிழ்', english: 'Tamil', flag: '🇮🇳' },
+  'te': { native: 'తెలుగు', english: 'Telugu', flag: '🇮🇳' },
+  'bn': { native: 'বাংলা', english: 'Bengali', flag: '🇮🇳' },
+  'gu': { native: 'ગુજરાતી', english: 'Gujarati', flag: '🇮🇳' },
+  'kn': { native: 'ಕನ್ನಡ', english: 'Kannada', flag: '🇮🇳' },
+  'ml': { native: 'മലയാളം', english: 'Malayalam', flag: '🇮🇳' },
+  'mr': { native: 'मराठी', english: 'Marathi', flag: '🇮🇳' },
+  'pa': { native: 'ਪੰਜਾਬੀ', english: 'Punjabi', flag: '🇮🇳' },
+  'or': { native: 'ଓଡ଼ିଆ', english: 'Odia', flag: '🇮🇳' },
+  'as': { native: 'অসমীয়া', english: 'Assamese', flag: '🇮🇳' },
+  'brx': { native: 'बड़ो', english: 'Bodo', flag: '🇮🇳' },
+  'doi': { native: 'डोगरी', english: 'Dogri', flag: '🇮🇳' },
+  'kok': { native: 'कोंकणी', english: 'Konkani', flag: '🇮🇳' },
+  'ks': { native: 'کٲشُر', english: 'Kashmiri', flag: '🇮🇳' },
+  'mai': { native: 'मैथिली', english: 'Maithili', flag: '🇮🇳' },
+  'mni': { native: 'ꯃꯤꯇꯩꯂꯣꯟ', english: 'Manipuri', flag: '🇮🇳' },
+  'ne': { native: 'नेपाली', english: 'Nepali', flag: '🇮🇳' },
+  'sa': { native: 'संस्कृतम्', english: 'Sanskrit', flag: '🇮🇳' },
+  'sat': { native: 'ᱥᱟᱱᱛᱟᱲᱤ', english: 'Santali', flag: '🇮🇳' },
+  'sd': { native: 'سنڌي', english: 'Sindhi', flag: '🇮🇳' },
+  'ur': { native: 'اردو', english: 'Urdu', flag: '🇮🇳' }
+};
+
+export async function sendToLLM(messages: Message[]): Promise<string> {
   const apiKey = getApiKey();
   
   if (!apiKey) {
@@ -93,20 +135,28 @@ export async function sendToLLM(messages: Message[], language = 'en'): Promise<s
 
 // Text-to-Speech using Sarvam API
 export async function synthesizeSpeech(text: string, language = 'en'): Promise<string> {
+  console.log('🎵 synthesizeSpeech called:', { text: text.substring(0, 50) + '...', language });
+  
   const apiKey = getApiKey();
   
   if (!apiKey) {
+    console.error('❌ No API key for TTS');
     throw new Error('Sarvam API key not found for TTS');
   }
 
+  // Truncate text to 2500 characters as per Sarvam API limit
+  const truncatedText = text.length > 2500 ? text.substring(0, 2500) + '...' : text;
+  
   const body = {
-    text: text,
+    text: truncatedText,
     language_code: LANGUAGE_MAP[language] || language,
     voice: 'default', // Sarvam AI voice options
     speed: 1.0,
     pitch: 1.0,
     volume: 1.0
   };
+  
+  console.log('🎵 TTS request body:', body);
 
   try {
     const response = await fetch(SARVAM_TTS_ENDPOINT, {
@@ -119,10 +169,12 @@ export async function synthesizeSpeech(text: string, language = 'en'): Promise<s
     });
 
     if (!response.ok) {
+      console.error('❌ TTS API error:', response.status);
       throw new Error(`TTS API error: ${response.status}`);
     }
 
     const data = await response.json();
+    console.log('✅ TTS API success:', { audioUrl: data.audio_url || data.audio });
     return data.audio_url || data.audio; // Return audio URL or base64 data
   } catch (error) {
     console.error('Error with TTS:', error);
@@ -201,21 +253,57 @@ export async function sendToLLMFallback(messages: Message[], language = 'en'): P
   return randomResponse;
 }
 
-// Translation API using Sarvam AI
-export async function translateText(text: string, targetLanguage: string, sourceLanguage = 'auto'): Promise<string> {
+// Enhanced Translation API using Sarvam AI with advanced features
+export async function translateText(
+  text: string, 
+  targetLanguage: string, 
+  sourceLanguage = 'auto',
+  options: {
+    model?: 'mayura:v1' | 'sarvam-translate:v1';
+    mode?: 'formal' | 'modern-colloquial' | 'classic-colloquial' | 'code-mixed';
+    outputScript?: 'roman' | 'fully-native' | 'spoken-form-in-native' | null;
+    numeralsFormat?: 'international' | 'native';
+    enablePreprocessing?: boolean;
+    speakerGender?: 'Male' | 'Female';
+  } = {}
+): Promise<string> {
   const apiKey = getApiKey();
   
   if (!apiKey) {
     throw new Error('Sarvam API key not found for translation');
   }
 
+  // Use sarvam-translate:v1 for better language support (22 languages)
+  // Map source language to proper format
+  const mappedSourceLanguage = sourceLanguage === 'auto' ? 'auto' : (LANGUAGE_MAP[sourceLanguage] || sourceLanguage);
+  const mappedTargetLanguage = LANGUAGE_MAP[targetLanguage] || targetLanguage;
+  
+  console.log('🌐 Translation language mapping:', {
+    originalSource: sourceLanguage,
+    mappedSource: mappedSourceLanguage,
+    originalTarget: targetLanguage,
+    mappedTarget: mappedTargetLanguage
+  });
+
   const body = {
     input: text,
-    source_language_code: sourceLanguage,
-    target_language_code: LANGUAGE_MAP[targetLanguage] || targetLanguage
+    source_language_code: mappedSourceLanguage,
+    target_language_code: mappedTargetLanguage,
+    model: options.model || 'sarvam-translate:v1',
+    mode: options.mode || 'formal',
+    output_script: options.outputScript || null,
+    numerals_format: options.numeralsFormat || 'international',
+    enable_preprocessing: options.enablePreprocessing || false,
+    ...(options.speakerGender && { speaker_gender: options.speakerGender })
   };
 
   try {
+    console.log('🌐 Making translation API call:', {
+      endpoint: SARVAM_TRANSLATE_ENDPOINT,
+      body: body,
+      hasApiKey: !!apiKey
+    });
+    
     const response = await fetch(SARVAM_TRANSLATE_ENDPOINT, {
       method: 'POST',
       headers: {
@@ -225,15 +313,93 @@ export async function translateText(text: string, targetLanguage: string, source
       body: JSON.stringify(body),
     });
 
+    console.log('📡 Translation API response:', {
+      status: response.status,
+      ok: response.ok
+    });
+
     if (!response.ok) {
-      throw new Error(`Translation API error: ${response.status}`);
+      const errorData = await response.json().catch(() => ({}));
+      console.error('❌ Translation API error:', errorData);
+      throw new Error(`Translation API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
     }
 
     const data = await response.json();
+    console.log('✅ Translation API success:', data);
     return data.translated_text || data.output || text;
   } catch (error) {
-    console.error('Error with translation:', error);
+    console.error('❌ Error with translation:', error);
     throw error;
+  }
+}
+
+// Translate multiple messages at once
+export async function translateMessages(
+  messages: Message[], 
+  targetLanguage: string, 
+  sourceLanguage = 'auto'
+): Promise<Message[]> {
+  console.log('🔄 translateMessages called:', {
+    messageCount: messages.length,
+    targetLanguage,
+    sourceLanguage,
+    messages: messages.map(m => ({ role: m.role, content: m.content.substring(0, 50) + '...' }))
+  });
+  
+  try {
+    const translatedMessages = await Promise.all(
+      messages.map(async (message, index) => {
+        console.log(`🔄 Translating message ${index + 1}/${messages.length}:`, {
+          role: message.role,
+          content: message.content.substring(0, 50) + '...'
+        });
+        
+        // Don't translate system messages
+        if (message.role === 'system') {
+          console.log('⏭️ Skipping system message');
+          return message;
+        }
+        
+        // Skip if already in target language
+        if (sourceLanguage === targetLanguage) {
+          console.log('⏭️ Skipping - same language');
+          return message;
+        }
+        
+        try {
+          console.log('🌐 Calling translateText API...');
+          const translatedContent = await translateText(
+            message.content, 
+            targetLanguage, 
+            sourceLanguage,
+            {
+              model: 'sarvam-translate:v1',
+              mode: 'formal',
+              enablePreprocessing: true
+            }
+          );
+          
+          console.log('✅ Translation successful:', {
+            original: message.content.substring(0, 30) + '...',
+            translated: translatedContent.substring(0, 30) + '...'
+          });
+          
+          return {
+            ...message,
+            content: translatedContent
+          };
+        } catch (error) {
+          console.warn(`❌ Failed to translate message: ${error}`);
+          return message; // Return original message if translation fails
+        }
+      })
+    );
+    
+    console.log('✅ All messages translated successfully');
+    return translatedMessages;
+  } catch (error) {
+    console.error('❌ Error translating messages:', error);
+    return messages; // Return original messages if translation fails
   }
 }
 

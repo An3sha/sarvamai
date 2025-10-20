@@ -46,17 +46,17 @@ declare const SpeechRecognition: {
   new(): SpeechRecognition;
 } | undefined;
 
-declare const webkitSpeechRecognition: {
-  prototype: SpeechRecognition;
-  new(): SpeechRecognition;
-} | undefined;
+// declare const webkitSpeechRecognition: {
+//   prototype: SpeechRecognition;
+//   new(): SpeechRecognition;
+// } | undefined;
 
 export function startRecognition(lang: string, onResult: (text: string)=>void) {
     const globalWindow = window as unknown as {
       SpeechRecognition?: typeof SpeechRecognition;
       webkitSpeechRecognition?: typeof SpeechRecognition;
     };
-    const SpeechRecognitionClass = globalWindow.SpeechRecognition || globalWindow.webkitSpeechRecognition;
+    const SpeechRecognitionClass = globalWindow.SpeechRecognition;
     if (!SpeechRecognitionClass) return { error: 'not-supported' };
     const r = new SpeechRecognitionClass();
     r.lang = lang;
@@ -82,41 +82,118 @@ export function startRecognition(lang: string, onResult: (text: string)=>void) {
     return { stop: ()=>r.stop() };
   }
   
-  export async function speak(text: string, lang: string) {
-  // Try Sarvam TTS first if API key is available
-  const globalWindow = window as unknown as {
-    AgentWidgetConfig?: {
-      sarvamApiKey?: string;
-      apiKey?: string;
-    };
-  };
-  const apiKey = globalWindow.AgentWidgetConfig?.sarvamApiKey || 
-                   globalWindow.AgentWidgetConfig?.apiKey;
+// Global speech control variables
+let currentAudio: HTMLAudioElement | null = null;
+let currentUtterance: SpeechSynthesisUtterance | null = null;
+let onSpeechEndCallback: (() => void) | null = null;
+
+export function setSpeechEndCallback(callback: (() => void) | null) {
+  onSpeechEndCallback = callback;
+}
+
+export function stopSpeaking() {
+  console.log('🔇 Stopping speech...');
+  
+  // Stop Sarvam TTS audio
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio.currentTime = 0;
+    currentAudio = null;
+  }
+  
+  // Stop browser TTS
+  if (currentUtterance) {
+    speechSynthesis.cancel();
+    currentUtterance = null;
+  }
+}
+
+export function pauseSpeaking() {
+  console.log('⏸️ Pausing speech...');
+  
+  // Pause Sarvam TTS audio
+  if (currentAudio && !currentAudio.paused) {
+    currentAudio.pause();
+  }
+  
+  // Pause browser TTS
+  if (currentUtterance) {
+    speechSynthesis.pause();
+  }
+}
+
+export function resumeSpeaking() {
+  console.log('▶️ Resuming speech...');
+  
+  // Resume Sarvam TTS audio
+  if (currentAudio && currentAudio.paused) {
+    currentAudio.play();
+  }
+  
+  // Resume browser TTS
+  if (currentUtterance) {
+    speechSynthesis.resume();
+  }
+}
+
+export async function speak(text: string, lang: string) {
+  console.log('🎤 Speaking:', text, 'in language:', lang);
+  console.log('🎤 Voice function called with:', { text: text.substring(0, 50) + '...', lang });
     
-    if (apiKey) {
-      try {
-        const audioUrl = await synthesizeSpeech(text, lang);
-        if (audioUrl) {
-          const audio = new Audio(audioUrl);
-          audio.play();
-          return;
+    // Try Sarvam TTS first if API key is available
+    const globalWindow = window as unknown as {
+      AgentWidgetConfig?: {
+        sarvamApiKey?: string;
+        apiKey?: string;
+      };
+    };
+    const apiKey = globalWindow.AgentWidgetConfig?.sarvamApiKey || 
+                     globalWindow.AgentWidgetConfig?.apiKey;
+      
+      if (apiKey) {
+        try {
+          console.log('🎵 Trying Sarvam TTS...');
+          const audioUrl = await synthesizeSpeech(text, lang);
+          if (audioUrl) {
+            console.log('🎵 Playing Sarvam TTS audio...');
+            currentAudio = new Audio(audioUrl);
+            currentAudio.onended = () => {
+              console.log('🎵 Sarvam TTS audio ended');
+              currentAudio = null;
+              onSpeechEndCallback?.();
+            };
+            currentAudio.onerror = (e) => {
+              console.error('🎵 Sarvam TTS audio error:', e);
+              currentAudio = null;
+            };
+            currentAudio.play();
+            return;
+          }
+        } catch (error) {
+          console.warn('Sarvam TTS failed, falling back to browser TTS:', error);
         }
-      } catch (error) {
-        console.warn('Sarvam TTS failed, falling back to browser TTS:', error);
       }
-    }
     
     // Fallback to browser speech synthesis
     if (!('speechSynthesis' in window)) {
-      console.warn('Speech synthesis not supported');
+      console.warn('❌ Speech synthesis not supported');
       return;
     }
     
-    const ut = new SpeechSynthesisUtterance(text);
-    ut.lang = lang;
-    ut.rate = 1;
-    ut.pitch = 1;
-    ut.volume = 1;
+    console.log('🎵 Using browser TTS...');
+    currentUtterance = new SpeechSynthesisUtterance(text);
+    currentUtterance.lang = lang;
+    currentUtterance.rate = 1;
+    currentUtterance.pitch = 1;
+    currentUtterance.volume = 1;
+    
+    console.log('🎵 Browser TTS utterance created:', {
+      text: text.substring(0, 50) + '...',
+      lang: currentUtterance.lang,
+      rate: currentUtterance.rate,
+      pitch: currentUtterance.pitch,
+      volume: currentUtterance.volume
+    });
     
     // Pick a voice matching the language
     const voices = speechSynthesis.getVoices();
@@ -125,15 +202,23 @@ export function startRecognition(lang: string, onResult: (text: string)=>void) {
                   voices[0];
     
     if (voice) {
-      ut.voice = voice;
+      currentUtterance.voice = voice;
+      console.log('🎵 Using voice:', voice.name, 'for language:', voice.lang);
     }
     
     // Handle speech synthesis events
-    ut.onstart = () => console.log('Speech started');
-    ut.onend = () => console.log('Speech ended');
-    ut.onerror = (e) => console.error('Speech error:', e);
+    currentUtterance.onstart = () => console.log('🎵 Speech started');
+    currentUtterance.onend = () => {
+      console.log('🎵 Speech ended');
+      currentUtterance = null;
+      onSpeechEndCallback?.();
+    };
+    currentUtterance.onerror = (e) => {
+      console.error('🎵 Speech error:', e);
+      currentUtterance = null;
+    };
     
-    speechSynthesis.speak(ut);
+    speechSynthesis.speak(currentUtterance);
   }
 
   // Enhanced voice recognition with better error handling
@@ -142,7 +227,7 @@ export function startRecognition(lang: string, onResult: (text: string)=>void) {
       SpeechRecognition?: typeof SpeechRecognition;
       webkitSpeechRecognition?: typeof SpeechRecognition;
     };
-    const SpeechRecognitionClass = globalWindow.SpeechRecognition || globalWindow.webkitSpeechRecognition;
+    const SpeechRecognitionClass = globalWindow.SpeechRecognition;
     if (!SpeechRecognitionClass) {
       onError?.('Speech recognition not supported in this browser');
       return { error: 'not-supported' };
