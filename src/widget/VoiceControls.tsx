@@ -3,6 +3,7 @@ import { startRecognition } from './voice';
 import { stopSpeaking } from './voice';
 import { Mic, MicOff, Send, Square } from 'lucide-react';
 
+// Type declarations for Web Speech API
 interface SpeechRecognition extends EventTarget {
   lang: string;
   interimResults: boolean;
@@ -61,6 +62,8 @@ export default function VoiceControls({
   const startListening = () => {
     if (!isSupported) return;
 
+    // Stop agent speaking when user starts speaking
+    console.log('🔇 Stopping agent speech to listen to user...');
     stopSpeaking();
 
     setError(null);

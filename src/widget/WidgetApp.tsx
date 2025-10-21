@@ -21,11 +21,9 @@ export default function WidgetApp({ config }: WidgetAppProps) {
   const [isTranslating, setIsTranslating] = useState(false);
   const recognitionRef = useRef<{ stop: () => void } | null>(null);
 
-
   const currentMessages = isVoiceMode ? voiceMessages : chatMessages;
   const setCurrentMessages = isVoiceMode ? setVoiceMessages : setChatMessages;
 
-  // Initialize with system context for both chat and voice
   useEffect(() => {
     if (config.context) {
       const systemMessage = { role: 'system' as const, content: config.context };
@@ -36,32 +34,19 @@ export default function WidgetApp({ config }: WidgetAppProps) {
 
   const toggleWidget = () => setIsOpen(!isOpen);
 
- 
   const handleLanguageChange = async (newLanguage: string) => {
     const previousLanguage = currentLanguage;
     setCurrentLanguage(newLanguage);
     
-    // Auto-translate existing messages if enabled and there are messages to translate
-    // Default to true if not specified
     const shouldAutoTranslate = config.enableAutoTranslation !== false;
     
-    console.log('🔍 Translation check:', {
-      enableAutoTranslation: config.enableAutoTranslation,
-      shouldAutoTranslate: shouldAutoTranslate,
-      chatMessagesLength: chatMessages.length,
-      voiceMessagesLength: voiceMessages.length,
-      shouldTranslate: shouldAutoTranslate && (chatMessages.length > 1 || voiceMessages.length > 1)
-    });
     
     if (shouldAutoTranslate && (chatMessages.length > 1 || voiceMessages.length > 1)) {
       setIsTranslating(true);
       try {
-        console.log(`🔄 Translating conversations from ${previousLanguage} to ${newLanguage}`);
-        console.log(`📊 Chat messages: ${chatMessages.length}, Voice messages: ${voiceMessages.length}`);
         
         const { translateMessages } = await import('./api');
         
-        // Translate both chat and voice messages if they have content beyond system message
         const chatToTranslate = chatMessages.length > 1 ? chatMessages : [];
         const voiceToTranslate = voiceMessages.length > 1 ? voiceMessages : [];
         
@@ -72,50 +57,34 @@ export default function WidgetApp({ config }: WidgetAppProps) {
         
         setChatMessages(translatedChatMessages);
         setVoiceMessages(translatedVoiceMessages);
-        console.log('✅ Conversations translated successfully');
       } catch (error) {
-        console.warn('Translation failed, keeping original messages:', error);
-        // Keep original messages if translation fails
       } finally {
         setIsTranslating(false);
       }
     } else {
-      console.log('🔄 Language changed to', newLanguage, '- No translation needed (no messages or auto-translation disabled)');
-      console.log('📊 Translation skipped:', {
-        shouldAutoTranslate,
-        chatMessagesLength: chatMessages.length,
-        voiceMessagesLength: voiceMessages.length,
-        hasMessages: chatMessages.length > 1 || voiceMessages.length > 1
-      });
     }
   };
 
   const handleVoiceResponse = async (newMessages: Message[]) => {
-    console.log('🎤 Handling voice response for messages:', newMessages);
     try {
       const { sendToLLM, sendToLLMFallback } = await import('./api');
       const { speak } = await import('./voice');
       
       let response: string;
       
-      // Try Sarvam API first, fallback to mock if no API key
       try {
-        console.log('🤖 Getting AI response...');
         response = await sendToLLM(newMessages);
-        console.log('🤖 AI response received:', response);
       } catch (apiError) {
-        console.warn('Sarvam API not available, using fallback:', apiError);
         response = await sendToLLMFallback(newMessages, currentLanguage);
       }
       
       const assistantMessage: Message = { role: 'assistant', content: response };
       setVoiceMessages(prev => [...prev, assistantMessage]);
+
       if (config.enableVoice) {
-        console.log('🎤 Speaking AI response...');
         speak(assistantMessage.content, currentLanguage);
       }
     } catch (error) {
-      console.error('Error handling voice response:', error);
       const errorMessage: Message = { 
         role: 'assistant', 
         content: 'Sorry, I encountered an error. Please try again.' 
@@ -442,9 +411,7 @@ export default function WidgetApp({ config }: WidgetAppProps) {
                 isVoiceMode={isVoiceMode}
                 isListening={isListening}
                 config={config}
-                onStopSpeaking={() => {
-                  console.log('🔇 Agent speech stopped by user interaction');
-                }}
+                onStopSpeaking={() => {}}
               />
               
               {config.enableVoice && isVoiceMode && (
@@ -458,15 +425,13 @@ export default function WidgetApp({ config }: WidgetAppProps) {
                       const newMessages = [...voiceMessages, userMessage];
                       setVoiceMessages(newMessages);
                       
+                      // Trigger AI response for voice messages
                       setIsLoading(true);
                       handleVoiceResponse(newMessages);
                     }
                   }}
                   recognitionRef={recognitionRef}
-                  onSendVoice={() => {
-                    console.log('📤 Voice message sent by user');
-                    // The voice result will be handled by onVoiceResult
-                  }}
+                  onSendVoice={() => {}}
                 />
               )}
             </div>
