@@ -1,7 +1,9 @@
 import { LANGUAGE_MAP } from './constants';
 import type { Message } from './types';
 
-const BACKEND_BASE_URL = 'http://localhost:3001';
+const BACKEND_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://your-vercel-app.vercel.app' 
+  : 'http://localhost:3001';
 
 const isBackendAvailable = async (): Promise<boolean> => {
   try {

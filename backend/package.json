@@ -1,19 +1,23 @@
 {
-  "name": "sarvam-widget-backend",
+  "name": "sarvam-ai-backend-proxy",
   "version": "1.0.0",
-  "description": "Backend proxy for Sarvam AI Widget",
+  "description": "A secure backend proxy for Sarvam AI API calls",
   "main": "server.js",
+  "type": "commonjs",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js"
   },
+  "keywords": [],
+  "author": "Apoorv Taneja",
+  "license": "ISC",
   "dependencies": {
-    "express": "^4.21.2",
     "cors": "^2.8.5",
-    "node-fetch": "^2.7.0",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "node-fetch": "^2.7.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.7"
+    "nodemon": "^3.1.0"
   }
 }
