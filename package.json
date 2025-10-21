@@ -13,6 +13,7 @@
     "serve": "vite preview --port 3000"
   },
   "dependencies": {
+    "lucide-react": "^0.546.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "sarvamai": "^0.1.9"
