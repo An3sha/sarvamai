@@ -1,159 +1,127 @@
-// src/widget/api.ts
-import { API_CONFIG, LANGUAGE_MAP } from './constants';
-import type { 
-  Message, 
-  AgentWidgetWindow
-} from './types';
+import { LANGUAGE_MAP } from './constants';
+import type { Message } from './types';
 
-// Get API key from config or environment
-const getApiKey = (): string => {
-  const globalWindow = window as AgentWidgetWindow;
-  return globalWindow.AgentWidgetConfig?.sarvamApiKey || 
-         globalWindow.AgentWidgetConfig?.apiKey ||
-         '';
+const BACKEND_BASE_URL = 'http://localhost:3001';
+
+const isBackendAvailable = async (): Promise<boolean> => {
+  try {
+    const response = await fetch(`${BACKEND_BASE_URL}/api/health`);
+    return response.ok;
+  } catch {
+    return false;
+  }
 };
 
-// Language mapping is now imported from constants.ts
-
-// Language names are now imported from constants.ts
-
 export async function sendToLLM(messages: Message[]): Promise<string> {
-  const apiKey = getApiKey();
+  const backendAvailable = await isBackendAvailable();
   
-  if (!apiKey) {
-    throw new Error('Sarvam API key not found. Please configure AgentWidgetConfig.sarvamApiKey');
-  }
+  if (backendAvailable) {
+    try {
+      const response = await fetch(`${BACKEND_BASE_URL}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'sarvam-m',
+          messages: messages.map(msg => ({ role: msg.role, content: msg.content })),
+          max_tokens: 1000,
+          temperature: 0.7,
+          stream: false
+        }),
+      });
 
-  // Prepare messages for Sarvam API
-  const formattedMessages = messages.map(msg => ({
-    role: msg.role,
-    content: msg.content
-  }));
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Backend API error: ${response.status} - ${errorText}`);
+      }
 
-  const body = {
-    model: 'sarvam-m', // Sarvam's supported model as per documentation
-    messages: formattedMessages,
-    max_tokens: 1000,
-    temperature: 0.7,
-    stream: false
-  };
-
-  try {
-    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CHAT}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'api-subscription-key': apiKey,
-      },
-      body: JSON.stringify(body),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Sarvam API error: ${response.status} - ${errorText}`);
+      const data = await response.json();
+      
+      if (data.choices && data.choices[0]?.message?.content) {
+        return data.choices[0].message.content;
+      }
+      
+      if (data.content) {
+        return data.content;
+      }
+      
+      throw new Error('Unexpected response format from backend API');
+    } catch (error) {
+      console.error('Backend API call failed, falling back to mock response:', error);
+      return await sendToLLMFallback(messages);
     }
-
-    const data = await response.json();
-    
-    // Handle Sarvam API response format
-    if (data.choices && data.choices[0]?.message?.content) {
-      return data.choices[0].message.content;
-    } else if (data.content) {
-      return data.content;
-    } else {
-      throw new Error('Unexpected response format from Sarvam API');
-    }
-  } catch (error) {
-    console.error('Error calling Sarvam API:', error);
-    throw error;
+  } else {
+    console.warn('Backend not available, using fallback responses');
+    return await sendToLLMFallback(messages);
   }
 }
 
-// Text-to-Speech using Sarvam API
 export async function synthesizeSpeech(text: string, language = 'en'): Promise<string> {
-  console.log('🎵 synthesizeSpeech called:', { text: text.substring(0, 50) + '...', language });
+  const backendAvailable = await isBackendAvailable();
   
-  const apiKey = getApiKey();
-  
-  if (!apiKey) {
-    console.error('❌ No API key for TTS');
-    throw new Error('Sarvam API key not found for TTS');
-  }
+  if (backendAvailable) {
+    try {
+      const truncatedText = text.length > 2500 ? text.substring(0, 2500) + '...' : text;
+      
+      const body = {
+        text: truncatedText,
+        language_code: LANGUAGE_MAP[language] || language,
+        voice: 'default',
+        speed: 1.0,
+        pitch: 1.0,
+        volume: 1.0
+      };
 
-  // Truncate text to 2500 characters as per Sarvam API limit
-  const truncatedText = text.length > 2500 ? text.substring(0, 2500) + '...' : text;
-  
-  const body = {
-    text: truncatedText,
-    language_code: LANGUAGE_MAP[language] || language,
-    voice: 'default', // Sarvam AI voice options
-    speed: 1.0,
-    pitch: 1.0,
-    volume: 1.0
-  };
-  
-  console.log('🎵 TTS request body:', body);
+      const response = await fetch(`${BACKEND_BASE_URL}/api/tts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
 
-  try {
-    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TTS}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'api-subscription-key': apiKey,
-      },
-      body: JSON.stringify(body),
-    });
+      if (!response.ok) {
+        throw new Error(`TTS API error: ${response.status}`);
+      }
 
-    if (!response.ok) {
-      console.error('❌ TTS API error:', response.status);
-      throw new Error(`TTS API error: ${response.status}`);
+      const data = await response.json();
+      return data.audio_url || data.audio;
+    } catch (error) {
+      console.error('Backend TTS API call failed:', error);
+      throw error;
     }
-
-    const data = await response.json();
-    console.log('✅ TTS API success:', { audioUrl: data.audio_url || data.audio });
-    return data.audio_url || data.audio; // Return audio URL or base64 data
-  } catch (error) {
-    console.error('Error with TTS:', error);
-    throw error;
+  } else {
+    throw new Error('Backend not available for TTS');
   }
 }
 
-// Speech-to-Text using Sarvam API
 export async function transcribeAudio(audioBlob: Blob, language = 'en'): Promise<string> {
-  const apiKey = getApiKey();
+  const backendAvailable = await isBackendAvailable();
   
-  if (!apiKey) {
-    throw new Error('Sarvam API key not found for STT');
-  }
+  if (backendAvailable) {
+    try {
+      const formData = new FormData();
+      formData.append('file', audioBlob);
+      formData.append('language_code', LANGUAGE_MAP[language] || language);
 
-  const formData = new FormData();
-  formData.append('file', audioBlob);
-  formData.append('language_code', LANGUAGE_MAP[language] || language);
+      const response = await fetch(`${BACKEND_BASE_URL}/api/stt`, {
+        method: 'POST',
+        body: formData,
+      });
 
-  try {
-    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.STT}`, {
-      method: 'POST',
-      headers: {
-        'api-subscription-key': apiKey,
-      },
-      body: formData,
-    });
+      if (!response.ok) {
+        throw new Error(`STT API error: ${response.status}`);
+      }
 
-    if (!response.ok) {
-      throw new Error(`STT API error: ${response.status}`);
+      const data = await response.json();
+      return data.transcription || data.text || '';
+    } catch (error) {
+      console.error('Backend STT API call failed:', error);
+      throw error;
     }
-
-    const data = await response.json();
-    return data.transcription || data.text || '';
-  } catch (error) {
-    console.error('Error with STT:', error);
-    throw error;
+  } else {
+    throw new Error('Backend not available for STT');
   }
 }
 
-// Fallback function for when Sarvam API is not available
 export async function sendToLLMFallback(messages: Message[], language = 'en'): Promise<string> {
-  // This is a mock implementation for development/testing
   console.warn('Using fallback LLM - configure Sarvam API key for production');
   
   const lastMessage = messages[messages.length - 1];
@@ -189,7 +157,6 @@ export async function sendToLLMFallback(messages: Message[], language = 'en'): P
   return randomResponse;
 }
 
-// Enhanced Translation API using Sarvam AI with advanced features
 export async function translateText(
   text: string, 
   targetLanguage: string, 
@@ -203,107 +170,61 @@ export async function translateText(
     speakerGender?: 'Male' | 'Female';
   } = {}
 ): Promise<string> {
-  const apiKey = getApiKey();
+  const backendAvailable = await isBackendAvailable();
   
-  if (!apiKey) {
-    throw new Error('Sarvam API key not found for translation');
-  }
+  if (backendAvailable) {
+    try {
+      const mappedSourceLanguage = sourceLanguage === 'auto' ? 'auto' : (LANGUAGE_MAP[sourceLanguage] || sourceLanguage);
+      const mappedTargetLanguage = LANGUAGE_MAP[targetLanguage] || targetLanguage;
 
-  // Use sarvam-translate:v1 for better language support (22 languages)
-  // Map source language to proper format
-  const mappedSourceLanguage = sourceLanguage === 'auto' ? 'auto' : (LANGUAGE_MAP[sourceLanguage] || sourceLanguage);
-  const mappedTargetLanguage = LANGUAGE_MAP[targetLanguage] || targetLanguage;
-  
-  console.log('🌐 Translation language mapping:', {
-    originalSource: sourceLanguage,
-    mappedSource: mappedSourceLanguage,
-    originalTarget: targetLanguage,
-    mappedTarget: mappedTargetLanguage
-  });
+      const body = {
+        input: text,
+        source_language_code: mappedSourceLanguage,
+        target_language_code: mappedTargetLanguage,
+        model: options.model || 'sarvam-translate:v1',
+        mode: options.mode || 'formal',
+        output_script: options.outputScript || null,
+        numerals_format: options.numeralsFormat || 'international',
+        enable_preprocessing: options.enablePreprocessing || false,
+        ...(options.speakerGender && { speaker_gender: options.speakerGender })
+      };
 
-  const body = {
-    input: text,
-    source_language_code: mappedSourceLanguage,
-    target_language_code: mappedTargetLanguage,
-    model: options.model || 'sarvam-translate:v1',
-    mode: options.mode || 'formal',
-    output_script: options.outputScript || null,
-    numerals_format: options.numeralsFormat || 'international',
-    enable_preprocessing: options.enablePreprocessing || false,
-    ...(options.speakerGender && { speaker_gender: options.speakerGender })
-  };
+      const response = await fetch(`${BACKEND_BASE_URL}/api/translate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
 
-  try {
-    console.log('🌐 Making translation API call:', {
-      endpoint: `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TRANSLATE}`,
-      body: body,
-      hasApiKey: !!apiKey
-    });
-    
-    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TRANSLATE}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'api-subscription-key': apiKey,
-      },
-      body: JSON.stringify(body),
-    });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`Translation API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
+      }
 
-    console.log('📡 Translation API response:', {
-      status: response.status,
-      ok: response.ok
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('❌ Translation API error:', errorData);
-      throw new Error(`Translation API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
+      const data = await response.json();
+      return data.translated_text || data.output || text;
+    } catch (error) {
+      console.error('Backend translation API call failed:', error);
+      throw error;
     }
-
-    const data = await response.json();
-    console.log('✅ Translation API success:', data);
-    return data.translated_text || data.output || text;
-  } catch (error) {
-    console.error('❌ Error with translation:', error);
-    throw error;
+  } else {
+    console.warn('Backend not available for translation, returning original text');
+    return text;
   }
 }
 
-// Translate multiple messages at once
 export async function translateMessages(
   messages: Message[], 
   targetLanguage: string, 
   sourceLanguage = 'auto'
 ): Promise<Message[]> {
-  console.log('🔄 translateMessages called:', {
-    messageCount: messages.length,
-    targetLanguage,
-    sourceLanguage,
-    messages: messages.map(m => ({ role: m.role, content: m.content.substring(0, 50) + '...' }))
-  });
-  
   try {
-    const translatedMessages = await Promise.all(
-      messages.map(async (message, index) => {
-        console.log(`🔄 Translating message ${index + 1}/${messages.length}:`, {
-          role: message.role,
-          content: message.content.substring(0, 50) + '...'
-        });
-        
-        // Don't translate system messages
-        if (message.role === 'system') {
-          console.log('⏭️ Skipping system message');
-          return message;
-        }
-        
-        // Skip if already in target language
-        if (sourceLanguage === targetLanguage) {
-          console.log('⏭️ Skipping - same language');
+    return await Promise.all(
+      messages.map(async (message) => {
+        if (message.role === 'system' || sourceLanguage === targetLanguage) {
           return message;
         }
         
         try {
-          console.log('🌐 Calling translateText API...');
           const translatedContent = await translateText(
             message.content, 
             targetLanguage, 
@@ -315,60 +236,43 @@ export async function translateMessages(
             }
           );
           
-          console.log('✅ Translation successful:', {
-            original: message.content.substring(0, 30) + '...',
-            translated: translatedContent.substring(0, 30) + '...'
-          });
-          
-          return {
-            ...message,
-            content: translatedContent
-          };
+          return { ...message, content: translatedContent };
         } catch (error) {
-          console.warn(`❌ Failed to translate message: ${error}`);
-          return message; // Return original message if translation fails
+          console.warn(`Failed to translate message: ${error}`);
+          return message;
         }
       })
     );
-    
-    console.log('✅ All messages translated successfully');
-    return translatedMessages;
   } catch (error) {
-    console.error('❌ Error translating messages:', error);
-    return messages; // Return original messages if translation fails
+    console.error('Error translating messages:', error);
+    return messages;
   }
 }
 
-// Language Identification API using Sarvam AI
 export async function identifyLanguage(text: string): Promise<string> {
-  const apiKey = getApiKey();
+  const backendAvailable = await isBackendAvailable();
   
-  if (!apiKey) {
-    throw new Error('Sarvam API key not found for language identification');
-  }
+  if (backendAvailable) {
+    try {
+      const body = { input: text };
 
-  const body = {
-    input: text
-  };
+      const response = await fetch(`${BACKEND_BASE_URL}/api/language-id`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
 
-  try {
-    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.LANGUAGE_ID}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'api-subscription-key': apiKey,
-      },
-      body: JSON.stringify(body),
-    });
+      if (!response.ok) {
+        throw new Error(`Language ID API error: ${response.status}`);
+      }
 
-    if (!response.ok) {
-      throw new Error(`Language ID API error: ${response.status}`);
+      const data = await response.json();
+      return data.language_code || data.language || 'en';
+    } catch (error) {
+      console.error('Backend language ID API call failed:', error);
+      return 'en';
     }
-
-    const data = await response.json();
-    return data.language_code || data.language || 'en';
-  } catch (error) {
-    console.error('Error with language identification:', error);
-    return 'en'; // Default to English on error
+  } else {
+    return 'en';
   }
 }

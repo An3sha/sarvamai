@@ -1,50 +1,9 @@
-// src/widget/constants.ts
-// Centralized constants and configuration
-
-// API Configuration
-export const API_CONFIG = {
-  BASE_URL: 'https://api.sarvam.ai',
-  ENDPOINTS: {
-    CHAT: '/v1/chat/completions',
-    TTS: '/text-to-speech',
-    STT: '/speech-to-text',
-    TRANSLATE: '/translate',
-    LANGUAGE_ID: '/language-identification'
-  },
-  HEADERS: {
-    'Content-Type': 'application/json',
-    'api-subscription-key': '' // Will be set dynamically
-  }
-} as const;
-
-// Language Configuration
 export const LANGUAGE_MAP: Record<string, string> = {
-  // Core languages
-  'en': 'en-IN',    // English
-  'hi': 'hi-IN',    // Hindi
-  'ta': 'ta-IN',    // Tamil
-  'te': 'te-IN',    // Telugu
-  'bn': 'bn-IN',    // Bengali
-  'gu': 'gu-IN',    // Gujarati
-  'kn': 'kn-IN',    // Kannada
-  'ml': 'ml-IN',    // Malayalam
-  'mr': 'mr-IN',    // Marathi
-  'pa': 'pa-IN',    // Punjabi
-  'or': 'od-IN',    // Odia
-  'as': 'as-IN',    // Assamese
-  
-  // Extended languages
-  'brx': 'brx-IN',  // Bodo
-  'doi': 'doi-IN',  // Dogri
-  'kok': 'kok-IN',  // Konkani
-  'ks': 'ks-IN',    // Kashmiri
-  'mai': 'mai-IN',  // Maithili
-  'mni': 'mni-IN',  // Manipuri
-  'ne': 'ne-IN',    // Nepali
-  'sa': 'sa-IN',    // Sanskrit
-  'sat': 'sat-IN',  // Santali
-  'sd': 'sd-IN',    // Sindhi
-  'ur': 'ur-IN'     // Urdu
+  'en': 'en-IN', 'hi': 'hi-IN', 'ta': 'ta-IN', 'te': 'te-IN', 'bn': 'bn-IN',
+  'gu': 'gu-IN', 'kn': 'kn-IN', 'ml': 'ml-IN', 'mr': 'mr-IN', 'pa': 'pa-IN',
+  'or': 'od-IN', 'as': 'as-IN', 'brx': 'brx-IN', 'doi': 'doi-IN', 'kok': 'kok-IN',
+  'ks': 'ks-IN', 'mai': 'mai-IN', 'mni': 'mni-IN', 'ne': 'ne-IN', 'sa': 'sa-IN',
+  'sat': 'sat-IN', 'sd': 'sd-IN', 'ur': 'ur-IN'
 } as const;
 
 export const LANGUAGE_NAMES: Record<string, { name: string; flag: string; native: string }> = {
@@ -73,30 +32,6 @@ export const LANGUAGE_NAMES: Record<string, { name: string; flag: string; native
   'ur': { name: 'Urdu', flag: '🇮🇳', native: 'اردو' }
 } as const;
 
-// UI Constants
-export const UI_CONFIG = {
-  ANIMATION_DURATION: 200,
-  DEBOUNCE_DELAY: 300,
-  SPEECH_SYNC_INTERVAL: 500,
-  MAX_TTS_LENGTH: 2500,
-  DEFAULT_POSITION: 'bottom-right' as const,
-  DEFAULT_THEME: {
-    primaryColor: '#4F46E5',
-    backgroundColor: '#ffffff',
-    textColor: '#1f2937'
-  }
-} as const;
-
-// Error Messages
-export const ERROR_MESSAGES = {
-  API_UNAVAILABLE: 'API service is currently unavailable. Please try again later.',
-  VOICE_NOT_SUPPORTED: 'Voice features are not supported in this browser.',
-  TRANSLATION_FAILED: 'Translation failed. Please try again.',
-  SPEECH_ERROR: 'Speech synthesis failed. Please try again.',
-  NETWORK_ERROR: 'Network error. Please check your connection.'
-} as const;
-
-// Default Configuration
 export const DEFAULT_CONFIG = {
   position: 'bottom-right' as const,
   theme: {

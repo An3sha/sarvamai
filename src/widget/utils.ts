@@ -1,7 +1,4 @@
-// src/widget/utils.ts
-// Utility functions for the widget
-
-import { LANGUAGE_MAP, UI_CONFIG } from './constants';
+import { LANGUAGE_MAP } from './constants';
 import type { Message } from './types';
 
 /**
@@ -11,7 +8,7 @@ export function debounce<T extends (...args: any[]) => any>(
   func: T,
   wait: number
 ): (...args: Parameters<T>) => void {
-  let timeout: NodeJS.Timeout;
+  let timeout: number;
   return (...args: Parameters<T>) => {
     clearTimeout(timeout);
     timeout = setTimeout(() => func(...args), wait);
@@ -49,7 +46,7 @@ export function formatMessage(content: string): string {
 /**
  * Truncate text to specified length
  */
-export function truncateText(text: string, maxLength: number = UI_CONFIG.MAX_TTS_LENGTH): string {
+export function truncateText(text: string, maxLength: number = 2500): string {
   if (text.length <= maxLength) return text;
   return text.substring(0, maxLength - 3) + '...';
 }
@@ -91,7 +88,7 @@ export function deepMerge<T extends Record<string, any>>(target: T, source: Part
   for (const key in source) {
     if (source.hasOwnProperty(key)) {
       if (typeof source[key] === 'object' && source[key] !== null && !Array.isArray(source[key])) {
-        result[key] = deepMerge(target[key] || {}, source[key]);
+        result[key] = deepMerge((target[key] || {}) as any, source[key] as any);
       } else {
         result[key] = source[key] as T[Extract<keyof T, string>];
       }
