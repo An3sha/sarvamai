@@ -1,27 +1,32 @@
 import { LANGUAGE_MAP } from './constants';
 import type { Message } from './types';
 
-const BACKEND_BASE_URL = import.meta.env.DEV 
-  ? 'http://localhost:3001'
-  : 'https://sarvamai-l7tsihy14-an3shas-projects.vercel.app';
+// Use the original Sarvam API approach that was working
+const SARVAM_BASE_URL = 'https://api.sarvam.ai';
 
-const isBackendAvailable = async (): Promise<boolean> => {
-  try {
-    const response = await fetch(`${BACKEND_BASE_URL}/api/health`);
-    return response.ok;
-  } catch {
-    return false;
-  }
+// Get API key from window config or environment
+const getApiKey = (): string => {
+  const config = (window as any).AgentWidgetConfig;
+  return config?.sarvamApiKey || config?.apiKey || '';
+};
+
+// Check if we have a valid API key
+const hasValidApiKey = (): boolean => {
+  const apiKey = getApiKey();
+  return !!apiKey && apiKey !== 'test-key' && apiKey !== 'debug-key';
 };
 
 export async function sendToLLM(messages: Message[]): Promise<string> {
-  const backendAvailable = await isBackendAvailable();
+  const apiKey = getApiKey();
   
-  if (backendAvailable) {
+  if (hasValidApiKey()) {
     try {
-      const response = await fetch(`${BACKEND_BASE_URL}/api/chat`, {
+      const response = await fetch(`${SARVAM_BASE_URL}/v1/chat/completions`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'api-subscription-key': apiKey
+        },
         body: JSON.stringify({
           model: 'sarvam-m',
           messages: messages.map(msg => ({ role: msg.role, content: msg.content })),
@@ -33,7 +38,7 @@ export async function sendToLLM(messages: Message[]): Promise<string> {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Backend API error: ${response.status} - ${errorText}`);
+        throw new Error(`Sarvam API error: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
@@ -46,21 +51,21 @@ export async function sendToLLM(messages: Message[]): Promise<string> {
         return data.content;
       }
       
-      throw new Error('Unexpected response format from backend API');
+      throw new Error('Unexpected response format from Sarvam API');
     } catch (error) {
-      console.error('Backend API call failed, falling back to mock response:', error);
+      console.error('Sarvam API call failed, falling back to mock response:', error);
       return await sendToLLMFallback(messages);
     }
   } else {
-    console.warn('Backend not available, using fallback responses');
+    console.warn('No valid API key found, using fallback responses');
     return await sendToLLMFallback(messages);
   }
 }
 
 export async function synthesizeSpeech(text: string, language = 'en'): Promise<string> {
-  const backendAvailable = await isBackendAvailable();
+  const apiKey = getApiKey();
   
-  if (backendAvailable) {
+  if (hasValidApiKey()) {
     try {
       const truncatedText = text.length > 2500 ? text.substring(0, 2500) + '...' : text;
       
@@ -73,9 +78,12 @@ export async function synthesizeSpeech(text: string, language = 'en'): Promise<s
         volume: 1.0
       };
 
-      const response = await fetch(`${BACKEND_BASE_URL}/api/tts`, {
+      const response = await fetch(`${SARVAM_BASE_URL}/text-to-speech`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'api-subscription-key': apiKey
+        },
         body: JSON.stringify(body),
       });
 
@@ -86,25 +94,28 @@ export async function synthesizeSpeech(text: string, language = 'en'): Promise<s
       const data = await response.json();
       return data.audio_url || data.audio;
     } catch (error) {
-      console.error('Backend TTS API call failed:', error);
+      console.error('Sarvam TTS API call failed:', error);
       throw error;
     }
   } else {
-    throw new Error('Backend not available for TTS');
+    throw new Error('No valid API key for TTS');
   }
 }
 
 export async function transcribeAudio(audioBlob: Blob, language = 'en'): Promise<string> {
-  const backendAvailable = await isBackendAvailable();
+  const apiKey = getApiKey();
   
-  if (backendAvailable) {
+  if (hasValidApiKey()) {
     try {
       const formData = new FormData();
       formData.append('file', audioBlob);
       formData.append('language_code', LANGUAGE_MAP[language] || language);
 
-      const response = await fetch(`${BACKEND_BASE_URL}/api/stt`, {
+      const response = await fetch(`${SARVAM_BASE_URL}/speech-to-text`, {
         method: 'POST',
+        headers: {
+          'api-subscription-key': apiKey
+        },
         body: formData,
       });
 
@@ -115,11 +126,11 @@ export async function transcribeAudio(audioBlob: Blob, language = 'en'): Promise
       const data = await response.json();
       return data.transcription || data.text || '';
     } catch (error) {
-      console.error('Backend STT API call failed:', error);
+      console.error('Sarvam STT API call failed:', error);
       throw error;
     }
   } else {
-    throw new Error('Backend not available for STT');
+    throw new Error('No valid API key for STT');
   }
 }
 
@@ -172,9 +183,9 @@ export async function translateText(
     speakerGender?: 'Male' | 'Female';
   } = {}
 ): Promise<string> {
-  const backendAvailable = await isBackendAvailable();
+  const apiKey = getApiKey();
   
-  if (backendAvailable) {
+  if (hasValidApiKey()) {
     try {
       const mappedSourceLanguage = sourceLanguage === 'auto' ? 'auto' : (LANGUAGE_MAP[sourceLanguage] || sourceLanguage);
       const mappedTargetLanguage = LANGUAGE_MAP[targetLanguage] || targetLanguage;
@@ -191,9 +202,12 @@ export async function translateText(
         ...(options.speakerGender && { speaker_gender: options.speakerGender })
       };
 
-      const response = await fetch(`${BACKEND_BASE_URL}/api/translate`, {
+      const response = await fetch(`${SARVAM_BASE_URL}/translate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'api-subscription-key': apiKey
+        },
         body: JSON.stringify(body),
       });
 
@@ -205,11 +219,11 @@ export async function translateText(
       const data = await response.json();
       return data.translated_text || data.output || text;
     } catch (error) {
-      console.error('Backend translation API call failed:', error);
+      console.error('Sarvam translation API call failed:', error);
       throw error;
     }
   } else {
-    console.warn('Backend not available for translation, returning original text');
+    console.warn('No valid API key for translation, returning original text');
     return text;
   }
 }
@@ -252,15 +266,18 @@ export async function translateMessages(
 }
 
 export async function identifyLanguage(text: string): Promise<string> {
-  const backendAvailable = await isBackendAvailable();
+  const apiKey = getApiKey();
   
-  if (backendAvailable) {
+  if (hasValidApiKey()) {
     try {
       const body = { input: text };
 
-      const response = await fetch(`${BACKEND_BASE_URL}/api/language-id`, {
+      const response = await fetch(`${SARVAM_BASE_URL}/language-identification`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'api-subscription-key': apiKey
+        },
         body: JSON.stringify(body),
       });
 
@@ -271,7 +288,7 @@ export async function identifyLanguage(text: string): Promise<string> {
       const data = await response.json();
       return data.language_code || data.language || 'en';
     } catch (error) {
-      console.error('Backend language ID API call failed:', error);
+      console.error('Sarvam language ID API call failed:', error);
       return 'en';
     }
   } else {

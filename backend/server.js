@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const fetch = require('node-fetch');
+const multer = require('multer');
 require('dotenv').config();
 
 const app = express();
@@ -9,6 +10,9 @@ const PORT = process.env.PORT || 3001;
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Configure multer for file uploads
+const upload = multer({ storage: multer.memoryStorage() });
 
 // Sarvam API configuration
 const SARVAM_BASE_URL = 'https://api.sarvam.ai';
@@ -70,10 +74,38 @@ app.post('/api/tts', async (req, res) => {
 });
 
 // Speech-to-Text endpoint
-app.post('/api/stt', async (req, res) => {
+app.post('/api/stt', upload.single('file'), async (req, res) => {
   try {
     console.log('🎤 STT request received');
-    const result = await callSarvamAPI('/speech-to-text', req.body);
+    
+    if (!req.file) {
+      return res.status(400).json({ error: 'No audio file provided' });
+    }
+
+    // Create FormData for Sarvam API
+    const FormData = require('form-data');
+    const formData = new FormData();
+    formData.append('file', req.file.buffer, {
+      filename: req.file.originalname || 'audio.wav',
+      contentType: req.file.mimetype || 'audio/wav'
+    });
+    formData.append('language_code', req.body.language_code || 'en-IN');
+
+    const response = await fetch(`${SARVAM_BASE_URL}/speech-to-text`, {
+      method: 'POST',
+      headers: {
+        'api-subscription-key': SARVAM_API_KEY,
+        ...formData.getHeaders()
+      },
+      body: formData
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Sarvam STT API error: ${response.status} - ${errorText}`);
+    }
+
+    const result = await response.json();
     res.json(result);
   } catch (error) {
     console.error('STT API error:', error);
