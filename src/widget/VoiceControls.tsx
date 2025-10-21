@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { startRecognition } from './voice';
 import { stopSpeaking } from './voice';
+import { Mic, MicOff, Send, Square } from 'lucide-react';
 
 // Type declarations for Web Speech API
 interface SpeechRecognition extends EventTarget {
@@ -116,15 +117,19 @@ export default function VoiceControls({
     <>
       <style>{`
         .voice-controls {
-          padding: 20px;
+          padding: 16px;
           border-top: 1px solid #e5e7eb;
           background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
           border-radius: 0 0 20px 20px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 20px;
         }
         
         .voice-button {
-          width: 100%;
-          padding: 18px 24px;
+          flex: 1;
+          padding: 12px 20px;
           border: 2px solid var(--primary-color);
           border-radius: 16px;
           background: ${isListening ? 'linear-gradient(135deg, var(--primary-color), #6366f1)' : 'transparent'};
@@ -207,20 +212,17 @@ export default function VoiceControls({
         }
         
         .send-button {
-          flex: 1;
-          padding: 14px 20px;
+          width: 56px;
+          height: 56px;
           border: none;
-          border-radius: 12px;
+          border-radius: 50%;
           background: linear-gradient(135deg, #10b981, #059669);
           color: white;
-          font-size: 14px;
-          font-weight: 600;
           cursor: pointer;
           transition: all 0.2s ease;
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 8px;
           box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
         }
         
@@ -237,24 +239,23 @@ export default function VoiceControls({
         .voice-actions {
           display: flex;
           gap: 16px;
-          margin-top: 20px;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
         }
         
         .stop-button {
-          flex: 1;
-          padding: 14px 20px;
+          width: 56px;
+          height: 56px;
           border: 2px solid #ef4444;
-          border-radius: 12px;
+          border-radius: 50%;
           background: transparent;
           color: #ef4444;
-          font-size: 14px;
-          font-weight: 600;
           cursor: pointer;
           transition: all 0.2s ease;
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 8px;
           box-shadow: 0 2px 4px rgba(239, 68, 68, 0.1);
         }
         
@@ -273,30 +274,34 @@ export default function VoiceControls({
           </div>
         ) : (
           <>
-            <button
-              className={`voice-button ${isListening ? 'listening' : ''}`}
-              onClick={toggleListening}
-            >
-              {isListening && <div className="listening-indicator"></div>}
-              <span className="voice-icon">
-                {isListening ? '🔴' : '🎤'}
-              </span>
-              {isListening ? 'Listening...' : 'Tap to speak'}
-            </button>
-            
-         
-            
-            {isListening && (
-              <div className="voice-actions">
-               
-                <button
-                  className="send-button"
-                  onClick={sendVoiceMessage}
-                >
-                  📤 Send
-                </button>
-              </div>
-            )}
+            <div className="voice-actions">
+              <button
+                className="stop-button"
+                onClick={stopListening}
+                style={{ display: isListening ? 'flex' : 'none' }}
+              >
+                <Square size={24} />
+              </button>
+              
+              <button
+                className={`voice-button ${isListening ? 'listening' : ''}`}
+                onClick={toggleListening}
+              >
+                {isListening && <div className="listening-indicator"></div>}
+                <span className="voice-icon">
+                  {isListening ? <MicOff size={24} /> : <Mic size={24} />}
+                </span>
+                {isListening ? 'Listening...' : 'Tap to speak'}
+              </button>
+              
+              <button
+                className="send-button"
+                onClick={sendVoiceMessage}
+                style={{ display: isListening ? 'flex' : 'none' }}
+              >
+                <Send size={24} />
+              </button>
+            </div>
           </>
         )}
       </div>

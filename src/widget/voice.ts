@@ -91,6 +91,11 @@ export function setSpeechEndCallback(callback: (() => void) | null) {
   onSpeechEndCallback = callback;
 }
 
+export function isCurrentlySpeaking(): boolean {
+  return Boolean((currentAudio && !currentAudio.paused) || 
+         (currentUtterance && speechSynthesis.speaking));
+}
+
 export function stopSpeaking() {
   console.log('🔇 Stopping speech...');
   

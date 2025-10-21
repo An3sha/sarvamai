@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import type { Message } from './api';
 import type { AgentConfig } from './settings';
 import { sendToLLM, sendToLLMFallback } from './api';
-import { speak, stopSpeaking, setSpeechEndCallback } from './voice';
+import { speak, stopSpeaking, setSpeechEndCallback, isCurrentlySpeaking } from './voice';
+import { Send, Mic, Square } from 'lucide-react';
 
 interface ChatPanelProps {
   messages: Message[];
@@ -68,6 +69,44 @@ export default function ChatPanel({
     return () => {
       setSpeechEndCallback(null);
       stopSpeaking();
+    };
+  }, []);
+
+  // Reset speaking state when switching modes
+  useEffect(() => {
+    if (!isVoiceMode) {
+      console.log('🔄 Switching away from voice mode, stopping speech');
+      setIsSpeaking(false);
+      stopSpeaking();
+    } else {
+      // When switching back to voice mode, check actual speech state
+      const actuallySpeaking = isCurrentlySpeaking();
+      console.log('🔄 Switching to voice mode, actual speech state:', actuallySpeaking);
+      setIsSpeaking(actuallySpeaking);
+    }
+  }, [isVoiceMode]);
+
+  // Sync speaking state periodically to ensure accuracy
+  useEffect(() => {
+    if (!isVoiceMode) return;
+    
+    const interval = setInterval(() => {
+      const actuallySpeaking = isCurrentlySpeaking();
+      if (isSpeaking !== actuallySpeaking) {
+        console.log('🔄 Syncing speaking state:', { isSpeaking, actuallySpeaking });
+        setIsSpeaking(actuallySpeaking);
+      }
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, [isVoiceMode, isSpeaking]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      console.log('🧹 ChatPanel unmounting, cleaning up speech');
+      stopSpeaking();
+      setIsSpeaking(false);
     };
   }, []);
 
@@ -153,10 +192,10 @@ export default function ChatPanel({
         .messages-container {
           flex: 1;
           overflow-y: auto;
-          padding: 20px;
+          padding: 12px;
           display: flex;
           flex-direction: column;
-          gap: 16px;
+          gap: 20px;
           background: linear-gradient(180deg, #fafbfc 0%, #ffffff 100%);
         }
         
@@ -250,7 +289,7 @@ export default function ChatPanel({
         }
         
         .input-container {
-          padding: 20px;
+          padding: 24px;
           border-top: 1px solid #e5e7eb;
           background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
           border-radius: 0 0 20px 20px;
@@ -258,7 +297,7 @@ export default function ChatPanel({
         
         .input-wrapper {
           display: flex;
-          gap: 12px;
+          gap: 16px;
           align-items: flex-end;
         }
         
@@ -275,12 +314,17 @@ export default function ChatPanel({
           min-height: 48px;
           max-height: 120px;
           background: #ffffff;
+          color: #1f2937;
           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
         
         .message-input:focus {
           border-color: var(--primary-color);
           box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+        
+        .message-input::placeholder {
+          color: #9ca3af;
         }
         
         .send-button {
@@ -353,47 +397,6 @@ export default function ChatPanel({
           font-size: 16px;
         }
         
-        .voice-controls {
-          display: flex;
-          gap: 8px;
-          padding: 12px 16px;
-          background: #f8f9fa;
-          border-top: 1px solid #e5e7eb;
-          justify-content: center;
-        }
-        
-        .voice-control-btn {
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          border: none;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 16px;
-          transition: all 0.2s ease;
-        }
-        
-        .voice-control-btn.stop {
-          background: #ef4444;
-          color: white;
-        }
-        
-        .voice-control-btn.pause {
-          background: #f59e0b;
-          color: white;
-        }
-        
-        .voice-control-btn:hover {
-          transform: scale(1.05);
-        }
-        
-        .voice-control-btn:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-          transform: none;
-        }
         
         /* Voice Interface Styles */
         .voice-interface {
@@ -401,31 +404,32 @@ export default function ChatPanel({
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          min-height: 300px;
-          padding: 40px 20px;
+          height: 200px;
+     
           text-align: center;
-          background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
-          border-radius: 20px;
-          margin: 20px;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        
+      
+        
+          overflow: hidden;
+          position: relative;
         }
         
-        .voice-status {
-          margin-bottom: 20px;
-        }
         
         .tap-to-speak {
           display: flex;
           flex-direction: column;
           align-items: center;
           gap: 20px;
+          padding: 20px;
+        
         }
         
         .mic-icon-large {
-          font-size: 64px;
-          opacity: 0.8;
+          font-size: 48px;
+          opacity: 0.9;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+          color: #4f46e5;
         }
         
         .tap-to-speak:hover .mic-icon-large {
@@ -434,151 +438,61 @@ export default function ChatPanel({
         }
         
         .tap-to-speak p {
-          font-size: 18px;
-          color: #64748b;
+          font-size: 16px;
+          color: #4f46e5;
           margin: 0;
-          font-weight: 500;
+          font-weight: 600;
         }
         
-        .listening-indicator {
-          position: relative;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 80px;
-          height: 80px;
-        }
-        
-        .pulse-ring {
-          position: absolute;
-          border: 2px solid #4F46E5;
-          border-radius: 50%;
-          animation: pulse 1.5s ease-out infinite;
-        }
-        
-        .pulse-ring:nth-child(1) {
-          width: 40px;
-          height: 40px;
-          animation-delay: 0s;
-        }
-        
-        .pulse-ring:nth-child(2) {
-          width: 60px;
-          height: 60px;
-          animation-delay: 0.3s;
-        }
-        
-        .pulse-ring:nth-child(3) {
-          width: 80px;
-          height: 80px;
-          animation-delay: 0.6s;
-        }
-        
-        .mic-icon {
-          font-size: 24px;
-          z-index: 1;
-          background: #4F46E5;
-          color: white;
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        
-        @keyframes pulse {
-          0% {
-            transform: scale(0.8);
-            opacity: 1;
-          }
-          100% {
-            transform: scale(1.2);
-            opacity: 0;
-          }
-        }
         
         .speaking-indicator {
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 12px;
-          margin-top: 20px;
+          gap: 8px;
+          margin-top: 12px;
+          padding: 8px;
+          background: rgba(79, 70, 229, 0.05);
+          border-radius: 8px;
+          border: 1px solid rgba(79, 70, 229, 0.1);
+          position: relative;
+          z-index: 10;
         }
         
-        .speaking-animation {
+        .stop-speaking-btn {
+          padding: 8px 16px;
+          border: 2px solid #ef4444;
+          border-radius: 8px;
+          background: transparent;
+          color: #ef4444;
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
           display: flex;
           align-items: center;
-          gap: 3px;
+          justify-content: center;
+          gap: 6px;
+          box-shadow: 0 2px 4px rgba(239, 68, 68, 0.1);
+          min-width: 80px;
         }
         
-        .sound-wave {
-          width: 4px;
-          background: #4F46E5;
-          border-radius: 2px;
-          animation: soundWave 1s ease-in-out infinite;
-        }
-        
-        .sound-wave:nth-child(1) {
-          height: 12px;
-          animation-delay: 0s;
-        }
-        
-        .sound-wave:nth-child(2) {
-          height: 20px;
-          animation-delay: 0.1s;
-        }
-        
-        .sound-wave:nth-child(3) {
-          height: 28px;
-          animation-delay: 0.2s;
-        }
-        
-        .sound-wave:nth-child(4) {
-          height: 20px;
-          animation-delay: 0.3s;
-        }
-        
-        .sound-wave:nth-child(5) {
-          height: 12px;
-          animation-delay: 0.4s;
-        }
-        
-        @keyframes soundWave {
-          0%, 100% {
-            transform: scaleY(0.5);
-            opacity: 0.7;
-          }
-          50% {
-            transform: scaleY(1);
-            opacity: 1;
-          }
+        .stop-speaking-btn:hover {
+          background: linear-gradient(135deg, #ef4444, #dc2626);
+          color: white;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
         }
         
         .speaking-indicator p {
-          font-size: 14px;
-          color: #666;
+          color: #4f46e5;
+          font-size: 15px;
+          font-weight: 600;
           margin: 0;
+          text-align: center;
         }
         
-        .voice-conversation-summary {
-          margin-top: 20px;
-          padding: 12px 16px;
-          background: #f8f9fa;
-          border-radius: 8px;
-          border: 1px solid #e9ecef;
-        }
         
-        .voice-conversation-summary p {
-          margin: 0 0 4px 0;
-          font-size: 14px;
-          color: #495057;
-        }
-        
-        .voice-conversation-summary small {
-          color: #6c757d;
-          font-size: 12px;
-        }
       `}</style>
       
       <div className="chat-container">
@@ -586,41 +500,33 @@ export default function ChatPanel({
           {isVoiceMode ? (
             // Voice mode - show voice interface
             <div className="voice-interface">
-              <div className="voice-status">
-                {isListening ? (
-                  <div className="listening-indicator">
-                    <div className="pulse-ring"></div>
-                    <div className="pulse-ring"></div>
-                    <div className="pulse-ring"></div>
-                    <div className="mic-icon">🎤</div>
+              {isListening && (
+                <div className="tap-to-speak">
+                  <div className="mic-icon-large">
+                    <Mic size={42} />
                   </div>
-                ) : (
-                  <div className="tap-to-speak">
-                    <div className="mic-icon-large">🎤</div>
-                    <p>Tap to speak</p>
-                  </div>
-                )}
-              </div>
-              
-              {/* {isSpeaking && (
-                <div className="speaking-indicator">
-                  <div className="speaking-animation">
-                    <div className="sound-wave"></div>
-                    <div className="sound-wave"></div>
-                    <div className="sound-wave"></div>
-                    <div className="sound-wave"></div>
-                    <div className="sound-wave"></div>
-                  </div>
-                  <p>Agent is speaking...</p>
-                </div>
-              )} */}
-              
-              {messages.filter(m => m.role !== 'system').length > 0 && (
-                <div className="voice-conversation-summary">
-                  <p>Conversation started</p>
-                  <small>{messages.filter(m => m.role !== 'system').length} exchanges</small>
+                  {/* <p>Tap to speak</p> */}
                 </div>
               )}
+              
+              {isSpeaking && (
+                <div className="speaking-indicator">
+                  <p>Agent is speaking...</p>
+                  <button 
+                    className="stop-speaking-btn"
+                    onClick={() => {
+                      console.log('🛑 User clicked stop button');
+                      stopSpeaking();
+                      setIsSpeaking(false);
+                      onStopSpeaking?.();
+                    }}
+                  >
+                    <Square size={16} />
+                    Stop
+                  </button>
+                </div>
+              )}
+              
             </div>
           ) : (
             // Chat mode - show text messages
@@ -684,9 +590,9 @@ export default function ChatPanel({
                 className="send-button"
                 onClick={handleSendMessage}
                 disabled={!inputValue.trim() || isLoading}
-              >
-                ➤
-              </button>
+                >
+                  <Send size={18} />
+                </button>
             </div>
           </div>
         )}

@@ -4,6 +4,7 @@ import { getLanguageInfo } from './settings';
 import type { Message } from './api';
 import ChatPanel from './ChatPanel';
 import VoiceControls from './VoiceControls';
+import { MessageCircle, X, Mic, Globe } from 'lucide-react';
 
 interface WidgetAppProps {
   config: AgentConfig;
@@ -220,6 +221,12 @@ export default function WidgetApp({ config }: WidgetAppProps) {
           font-size: 18px;
         }
         
+        .widget-toggle .default-avatar svg {
+          width: 20px;
+          height: 20px;
+          color: white;
+        }
+        
         .widget-panel {
           position: absolute;
           bottom: 70px;
@@ -243,13 +250,14 @@ export default function WidgetApp({ config }: WidgetAppProps) {
         .widget-header {
           background: linear-gradient(135deg, var(--primary-color), #6366f1);
           color: white;
-          padding: 20px 24px;
+          padding: 16px 20px;
           display: flex;
           align-items: center;
           justify-content: space-between;
           border-radius: 20px 20px 0 0;
           position: relative;
           overflow: hidden;
+          gap: 16px;
         }
         
         .widget-header::before {
@@ -273,9 +281,10 @@ export default function WidgetApp({ config }: WidgetAppProps) {
         }
         
         .language-selector {
-          background: rgba(255, 255, 255, 0.15);
+        
+          background: rgba(255, 255, 255, 0.15); !important
           border: 1px solid rgba(255, 255, 255, 0.2);
-          color: white;
+          color: black;
           padding: 8px 12px;
           border-radius: 8px;
           font-size: 13px;
@@ -285,6 +294,12 @@ export default function WidgetApp({ config }: WidgetAppProps) {
           backdrop-filter: blur(10px);
           position: relative;
           z-index: 1;
+        }
+        
+        .language-selector option {
+          background: #1f2937;
+          color: white;
+          padding: 8px;
         }
         
         .language-selector:hover {
@@ -320,25 +335,30 @@ export default function WidgetApp({ config }: WidgetAppProps) {
         .mode-toggle {
           display: flex;
           background: #f8fafc;
-          margin: 16px;
-          border-radius: 12px;
+          margin: 20px;
+          border-radius: 16px;
           padding: 6px;
           border: 1px solid #e2e8f0;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+          gap: 8px;
         }
         
         .mode-btn {
           flex: 1;
-          padding: 12px 16px;
+          padding: 10px 14px;
           border: none;
           background: transparent;
-          border-radius: 8px;
+          border-radius: 10px;
           cursor: pointer;
-          font-size: 14px;
+          font-size: 13px;
           font-weight: 500;
           transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
           color: #64748b;
           position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
         }
         
         .mode-btn.active {
@@ -366,46 +386,45 @@ export default function WidgetApp({ config }: WidgetAppProps) {
         <button className="widget-toggle" onClick={toggleWidget}>
           {config.agent?.avatar ? (
             <img src={config.agent.avatar} alt={config.agent.name || 'Agent'} />
-          ) : (
-            <div className="default-avatar">
-              {(config.agent?.name || 'A').charAt(0).toUpperCase()}
-            </div>
-          )}
+            ) : (
+              <MessageCircle size={24} />
+            )}
         </button>
         
         {isOpen && (
           <div className="widget-panel">
-            <div className="widget-header">
-              <div>
-                <h3>{config.agent?.name || 'HelperBot'}</h3>
-                <div className="language-selector-container">
-                  <select 
-                    className="language-selector"
-                    value={currentLanguage}
-                    onChange={(e) => handleLanguageChange(e.target.value)}
-                    disabled={isTranslating}
-                  >
-                    {config.languages?.map(lang => {
-                      const langInfo = getLanguageInfo(lang);
-                      return (
-                        <option key={lang} value={lang}>
-                          {langInfo.flag} {langInfo.native} ({langInfo.name})
-                        </option>
-                      );
-                    })}
-                  </select>
-                  {isTranslating && (
-                    <div className="translation-indicator">
-                      <span className="spinner">🔄</span>
-                      <span>Translating...</span>
-                    </div>
-                  )}
+              <div className="widget-header">
+                <div className="header-content">
+                  <h3>{config.agent?.name || 'HelperBot'}</h3>
+                  <div className="language-selector-container">
+                    <Globe size={16} className="language-icon" />
+                    <select 
+                      className="language-selector"
+                      value={currentLanguage}
+                      onChange={(e) => handleLanguageChange(e.target.value)}
+                      disabled={isTranslating}
+                    >
+                      {config.languages?.map(lang => {
+                        const langInfo = getLanguageInfo(lang);
+                        return (
+                          <option key={lang} value={lang}>
+                            {langInfo.flag} {langInfo.native} ({langInfo.name})
+                          </option>
+                        );
+                      })}
+                    </select>
+                    {isTranslating && (
+                      <div className="translation-indicator">
+                        <span className="spinner">🔄</span>
+                        <span>Translating...</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
+                <button className="close-btn" onClick={() => setIsOpen(false)}>
+                  <X size={20} />
+                </button>
               </div>
-              <button className="close-btn" onClick={() => setIsOpen(false)}>
-                ×
-              </button>
-            </div>
             
             <div className="widget-content">
               {config.enableVoice && (
@@ -414,13 +433,15 @@ export default function WidgetApp({ config }: WidgetAppProps) {
                     className={`mode-btn ${!isVoiceMode ? 'active' : ''}`}
                     onClick={() => setIsVoiceMode(false)}
                   >
-                    💬 Chat
+                    <MessageCircle size={16} />
+                    Chat
                   </button>
                   <button 
                     className={`mode-btn ${isVoiceMode ? 'active' : ''}`}
                     onClick={() => setIsVoiceMode(true)}
                   >
-                    🎤 Voice
+                    <Mic size={16} />
+                    Voice
                   </button>
                 </div>
               )}
@@ -471,8 +492,20 @@ export default function WidgetApp({ config }: WidgetAppProps) {
         .language-selector-container {
           position: relative;
           display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        
+        .header-content {
+          display: flex;
           flex-direction: column;
-          gap: 4px;
+          gap: 12px;
+          flex: 1;
+        }
+        
+        .language-icon {
+          color: rgba(255, 255, 255, 0.8);
+          flex-shrink: 0;
         }
         
         .language-selector {
