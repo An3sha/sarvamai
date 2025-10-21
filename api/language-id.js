@@ -39,7 +39,7 @@ async function callSarvamAPI(endpoint, body, method = 'POST') {
 }
 
 // Language identification endpoint
-app.post('/api/language-id', async (req, res) => {
+app.post('/', async (req, res) => {
   try {
     console.log('🔍 Language ID request received');
     const result = await callSarvamAPI('/language-identification', req.body);

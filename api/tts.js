@@ -39,7 +39,7 @@ async function callSarvamAPI(endpoint, body, method = 'POST') {
 }
 
 // Text-to-Speech endpoint
-app.post('/api/tts', async (req, res) => {
+app.post('/', async (req, res) => {
   try {
     console.log('🔊 TTS request received');
     const result = await callSarvamAPI('/text-to-speech', req.body);

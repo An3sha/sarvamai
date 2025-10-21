@@ -39,7 +39,7 @@ async function callSarvamAPI(endpoint, body, method = 'POST') {
 }
 
 // Chat completions endpoint
-app.post('/api/chat', async (req, res) => {
+app.post('/', async (req, res) => {
   try {
     console.log('📝 Chat request received');
     const result = await callSarvamAPI('/v1/chat/completions', req.body);

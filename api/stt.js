@@ -39,7 +39,7 @@ async function callSarvamAPI(endpoint, body, method = 'POST') {
 }
 
 // Speech-to-Text endpoint
-app.post('/api/stt', async (req, res) => {
+app.post('/', async (req, res) => {
   try {
     console.log('🎤 STT request received');
     const result = await callSarvamAPI('/speech-to-text', req.body);

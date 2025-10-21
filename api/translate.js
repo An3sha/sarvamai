@@ -39,7 +39,7 @@ async function callSarvamAPI(endpoint, body, method = 'POST') {
 }
 
 // Translation endpoint
-app.post('/api/translate', async (req, res) => {
+app.post('/', async (req, res) => {
   try {
     console.log('🌐 Translation request received');
     const result = await callSarvamAPI('/translate', req.body);
