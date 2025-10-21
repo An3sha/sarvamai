@@ -4,7 +4,7 @@ import { getLanguageInfo } from './settings';
 import type { Message } from './types';
 import ChatPanel from './ChatPanel';
 import VoiceControls from './VoiceControls';
-// import { MessageCircle, X, Mic, Globe } from 'lucide-react';
+import { MessageCircle, X, Mic, Globe } from 'lucide-react';
 
 interface WidgetAppProps {
   config: AgentConfig;
@@ -374,7 +374,7 @@ export default function WidgetApp({ config }: WidgetAppProps) {
           {config.agent?.avatar ? (
             <img src={config.agent.avatar} alt={config.agent.name || 'Agent'} />
             ) : (
-              <span>💬</span>
+              <MessageCircle size={24} />
             )}
         </button>
         
@@ -384,7 +384,7 @@ export default function WidgetApp({ config }: WidgetAppProps) {
                 <div className="header-content">
                   <h3>{config.agent?.name || 'HelperBot'}</h3>
                   <div className="language-selector-container">
-                    <span>🌐</span>
+                    <Globe size={16} className="language-icon" />
                     <select 
                       className="language-selector"
                       value={currentLanguage}
@@ -409,7 +409,7 @@ export default function WidgetApp({ config }: WidgetAppProps) {
                   </div>
                 </div>
                 <button className="close-btn" onClick={() => setIsOpen(false)}>
-                  ✕
+                  <X size={20} />
                 </button>
               </div>
             
@@ -420,14 +420,14 @@ export default function WidgetApp({ config }: WidgetAppProps) {
                     className={`mode-btn ${!isVoiceMode ? 'active' : ''}`}
                     onClick={() => setIsVoiceMode(false)}
                   >
-                    <span>💬</span>
+                    <MessageCircle size={16} />
                     Chat
                   </button>
                   <button 
                     className={`mode-btn ${isVoiceMode ? 'active' : ''}`}
                     onClick={() => setIsVoiceMode(true)}
                   >
-                    <span>🎤</span>
+                    <Mic size={16} />
                     Voice
                   </button>
                 </div>
