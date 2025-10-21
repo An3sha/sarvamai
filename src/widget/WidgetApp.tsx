@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { AgentConfig } from './settings';
 import { getLanguageInfo } from './settings';
-import type { Message } from './api';
+import type { Message } from './types';
 import ChatPanel from './ChatPanel';
 import VoiceControls from './VoiceControls';
 import { MessageCircle, X, Mic, Globe } from 'lucide-react';
@@ -12,7 +12,6 @@ interface WidgetAppProps {
 
 export default function WidgetApp({ config }: WidgetAppProps) {
   const [isOpen, setIsOpen] = useState(false);
-  // Separate message histories for chat and voice modes
   const [chatMessages, setChatMessages] = useState<Message[]>([]);
   const [voiceMessages, setVoiceMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -22,16 +21,7 @@ export default function WidgetApp({ config }: WidgetAppProps) {
   const [isTranslating, setIsTranslating] = useState(false);
   const recognitionRef = useRef<{ stop: () => void } | null>(null);
 
-  // Debug configuration
-  console.log('🔧 WidgetApp config:', {
-    enableAutoTranslation: config.enableAutoTranslation,
-    translationMode: config.translationMode,
-    enablePreprocessing: config.enablePreprocessing,
-    languages: config.languages,
-    fullConfig: config
-  });
 
-  // Get current messages based on mode
   const currentMessages = isVoiceMode ? voiceMessages : chatMessages;
   const setCurrentMessages = isVoiceMode ? setVoiceMessages : setChatMessages;
 
@@ -46,7 +36,7 @@ export default function WidgetApp({ config }: WidgetAppProps) {
 
   const toggleWidget = () => setIsOpen(!isOpen);
 
-  // Handle language change with automatic translation
+ 
   const handleLanguageChange = async (newLanguage: string) => {
     const previousLanguage = currentLanguage;
     setCurrentLanguage(newLanguage);
@@ -119,10 +109,7 @@ export default function WidgetApp({ config }: WidgetAppProps) {
       }
       
       const assistantMessage: Message = { role: 'assistant', content: response };
-      // Update voice messages specifically
       setVoiceMessages(prev => [...prev, assistantMessage]);
-
-      // Always speak the response for voice messages
       if (config.enableVoice) {
         console.log('🎤 Speaking AI response...');
         speak(assistantMessage.content, currentLanguage);
@@ -471,7 +458,6 @@ export default function WidgetApp({ config }: WidgetAppProps) {
                       const newMessages = [...voiceMessages, userMessage];
                       setVoiceMessages(newMessages);
                       
-                      // Trigger AI response for voice messages
                       setIsLoading(true);
                       handleVoiceResponse(newMessages);
                     }

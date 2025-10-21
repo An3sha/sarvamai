@@ -7,9 +7,9 @@ function App() {
   const [config, setConfig] = React.useState(loadConfig())
 
   useEffect(() => {
-    // Set up a demo configuration for development with Sarvam API
+ 
     const demoConfig = {
-      sarvamApiKey: 'sk_uj0n6g37_9EBFAiU9akOcJKkNjOiCTE1P', // Replace with your actual API key
+      sarvamApiKey: 'sk_uj0n6g37_9EBFAiU9akOcJKkNjOiCTE1P', 
       position: 'bottom-right' as const,
       theme: {
         primaryColor: '#4F46E5',
@@ -23,7 +23,7 @@ function App() {
         greeting: 'Hello! I\'m your Sarvam AI assistant. Try the chat and voice features!'
       },
       enableVoice: true,
-      languages: ['en', 'hi', 'ta', 'te', 'bn'], // Indian languages supported by Sarvam
+      languages: ['en', 'hi', 'ta', 'te', 'bn'], 
       context: 'You are a helpful AI assistant powered by Sarvam AI. You can help with coding questions, explain concepts, or just chat!',
       autoOpen: false,
       showWelcomeMessage: true,
@@ -73,7 +73,7 @@ function App() {
         </div> */}
       {/* </main> */}
 
-      {/* Render the widget directly in development */}
+     
       <WidgetApp config={config} />
     </div>
   )

@@ -1,85 +1,21 @@
 // src/widget/api.ts
-export type Role = 'user'|'assistant'|'system';
-export interface Message { role: Role; content: string; }
-
-// Sarvam AI API endpoints (based on official documentation)
-const SARVAM_BASE_URL = 'https://api.sarvam.ai';
-const SARVAM_CHAT_ENDPOINT = `${SARVAM_BASE_URL}/v1/chat/completions`;
-const SARVAM_TTS_ENDPOINT = `${SARVAM_BASE_URL}/text-to-speech`;
-const SARVAM_STT_ENDPOINT = `${SARVAM_BASE_URL}/speech-to-text`;
-const SARVAM_TRANSLATE_ENDPOINT = `${SARVAM_BASE_URL}/translate`;
-const SARVAM_LID_ENDPOINT = `${SARVAM_BASE_URL}/language-identification`;
+import { API_CONFIG, LANGUAGE_MAP } from './constants';
+import type { 
+  Message, 
+  AgentWidgetWindow
+} from './types';
 
 // Get API key from config or environment
-const getApiKey = () => {
-  const globalWindow = window as unknown as {
-    AgentWidgetConfig?: {
-      sarvamApiKey?: string;
-      apiKey?: string;
-    };
-  };
+const getApiKey = (): string => {
+  const globalWindow = window as AgentWidgetWindow;
   return globalWindow.AgentWidgetConfig?.sarvamApiKey || 
          globalWindow.AgentWidgetConfig?.apiKey ||
          '';
 };
 
-// Enhanced language mapping for Sarvam API (based on official documentation)
-// Supports all 22 scheduled languages of India
-const LANGUAGE_MAP: Record<string, string> = {
-  // Core languages (mayura:v1 and sarvam-translate:v1)
-  'en': 'en-IN',    // English
-  'hi': 'hi-IN',    // Hindi
-  'ta': 'ta-IN',    // Tamil
-  'te': 'te-IN',    // Telugu
-  'bn': 'bn-IN',    // Bengali
-  'gu': 'gu-IN',    // Gujarati
-  'kn': 'kn-IN',    // Kannada
-  'ml': 'ml-IN',    // Malayalam
-  'mr': 'mr-IN',    // Marathi
-  'pa': 'pa-IN',    // Punjabi
-  'or': 'od-IN',    // Odia
-  'as': 'as-IN',    // Assamese
-  
-  // Newly added languages (sarvam-translate:v1)
-  'brx': 'brx-IN',  // Bodo
-  'doi': 'doi-IN',  // Dogri
-  'kok': 'kok-IN',  // Konkani
-  'ks': 'ks-IN',    // Kashmiri
-  'mai': 'mai-IN',  // Maithili
-  'mni': 'mni-IN',  // Manipuri (Meiteilon)
-  'ne': 'ne-IN',    // Nepali
-  'sa': 'sa-IN',    // Sanskrit
-  'sat': 'sat-IN',  // Santali
-  'sd': 'sd-IN',    // Sindhi
-  'ur': 'ur-IN'     // Urdu
-};
+// Language mapping is now imported from constants.ts
 
-// Language display names for UI
-export const LANGUAGE_NAMES: Record<string, { native: string; english: string; flag: string }> = {
-  'en': { native: 'English', english: 'English', flag: '🇺🇸' },
-  'hi': { native: 'हिन्दी', english: 'Hindi', flag: '🇮🇳' },
-  'ta': { native: 'தமிழ்', english: 'Tamil', flag: '🇮🇳' },
-  'te': { native: 'తెలుగు', english: 'Telugu', flag: '🇮🇳' },
-  'bn': { native: 'বাংলা', english: 'Bengali', flag: '🇮🇳' },
-  'gu': { native: 'ગુજરાતી', english: 'Gujarati', flag: '🇮🇳' },
-  'kn': { native: 'ಕನ್ನಡ', english: 'Kannada', flag: '🇮🇳' },
-  'ml': { native: 'മലയാളം', english: 'Malayalam', flag: '🇮🇳' },
-  'mr': { native: 'मराठी', english: 'Marathi', flag: '🇮🇳' },
-  'pa': { native: 'ਪੰਜਾਬੀ', english: 'Punjabi', flag: '🇮🇳' },
-  'or': { native: 'ଓଡ଼ିଆ', english: 'Odia', flag: '🇮🇳' },
-  'as': { native: 'অসমীয়া', english: 'Assamese', flag: '🇮🇳' },
-  'brx': { native: 'बड़ो', english: 'Bodo', flag: '🇮🇳' },
-  'doi': { native: 'डोगरी', english: 'Dogri', flag: '🇮🇳' },
-  'kok': { native: 'कोंकणी', english: 'Konkani', flag: '🇮🇳' },
-  'ks': { native: 'کٲشُر', english: 'Kashmiri', flag: '🇮🇳' },
-  'mai': { native: 'मैथिली', english: 'Maithili', flag: '🇮🇳' },
-  'mni': { native: 'ꯃꯤꯇꯩꯂꯣꯟ', english: 'Manipuri', flag: '🇮🇳' },
-  'ne': { native: 'नेपाली', english: 'Nepali', flag: '🇮🇳' },
-  'sa': { native: 'संस्कृतम्', english: 'Sanskrit', flag: '🇮🇳' },
-  'sat': { native: 'ᱥᱟᱱᱛᱟᱲᱤ', english: 'Santali', flag: '🇮🇳' },
-  'sd': { native: 'سنڌي', english: 'Sindhi', flag: '🇮🇳' },
-  'ur': { native: 'اردو', english: 'Urdu', flag: '🇮🇳' }
-};
+// Language names are now imported from constants.ts
 
 export async function sendToLLM(messages: Message[]): Promise<string> {
   const apiKey = getApiKey();
@@ -103,7 +39,7 @@ export async function sendToLLM(messages: Message[]): Promise<string> {
   };
 
   try {
-    const response = await fetch(SARVAM_CHAT_ENDPOINT, {
+    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CHAT}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -159,7 +95,7 @@ export async function synthesizeSpeech(text: string, language = 'en'): Promise<s
   console.log('🎵 TTS request body:', body);
 
   try {
-    const response = await fetch(SARVAM_TTS_ENDPOINT, {
+    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TTS}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -195,7 +131,7 @@ export async function transcribeAudio(audioBlob: Blob, language = 'en'): Promise
   formData.append('language_code', LANGUAGE_MAP[language] || language);
 
   try {
-    const response = await fetch(SARVAM_STT_ENDPOINT, {
+    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.STT}`, {
       method: 'POST',
       headers: {
         'api-subscription-key': apiKey,
@@ -299,12 +235,12 @@ export async function translateText(
 
   try {
     console.log('🌐 Making translation API call:', {
-      endpoint: SARVAM_TRANSLATE_ENDPOINT,
+      endpoint: `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TRANSLATE}`,
       body: body,
       hasApiKey: !!apiKey
     });
     
-    const response = await fetch(SARVAM_TRANSLATE_ENDPOINT, {
+    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TRANSLATE}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -416,7 +352,7 @@ export async function identifyLanguage(text: string): Promise<string> {
   };
 
   try {
-    const response = await fetch(SARVAM_LID_ENDPOINT, {
+    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.LANGUAGE_ID}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

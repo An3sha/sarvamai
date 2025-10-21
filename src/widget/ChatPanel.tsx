@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import type { Message } from './api';
+import type { Message } from './types';
 import type { AgentConfig } from './settings';
 import { sendToLLM, sendToLLMFallback } from './api';
 import { speak, stopSpeaking, setSpeechEndCallback, isCurrentlySpeaking } from './voice';
+import { formatMessage, scrollIntoView } from './utils';
 import { Send, Mic, Square } from 'lucide-react';
 
 interface ChatPanelProps {
@@ -34,14 +35,13 @@ export default function ChatPanel({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    scrollIntoView(messagesEndRef.current);
   };
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
-  // Monitor for new assistant messages and set speaking state
   useEffect(() => {
     const lastMessage = messages[messages.length - 1];
     if (lastMessage && lastMessage.role === 'assistant' && isVoiceMode && config.enableVoice) {
@@ -50,7 +50,6 @@ export default function ChatPanel({
     }
   }, [messages, isVoiceMode, config.enableVoice]);
 
-  // Stop speaking when user starts listening
   useEffect(() => {
     if (isListening && isSpeaking) {
       console.log('🔇 User started listening, stopping agent speech');
@@ -60,7 +59,6 @@ export default function ChatPanel({
     }
   }, [isListening, isSpeaking, onStopSpeaking]);
 
-  // Set up speech end callback and cleanup
   useEffect(() => {
     setSpeechEndCallback(() => {
       setIsSpeaking(false);
@@ -72,21 +70,18 @@ export default function ChatPanel({
     };
   }, []);
 
-  // Reset speaking state when switching modes
   useEffect(() => {
     if (!isVoiceMode) {
       console.log('🔄 Switching away from voice mode, stopping speech');
       setIsSpeaking(false);
       stopSpeaking();
     } else {
-      // When switching back to voice mode, check actual speech state
       const actuallySpeaking = isCurrentlySpeaking();
       console.log('🔄 Switching to voice mode, actual speech state:', actuallySpeaking);
       setIsSpeaking(actuallySpeaking);
     }
   }, [isVoiceMode]);
 
-  // Sync speaking state periodically to ensure accuracy
   useEffect(() => {
     if (!isVoiceMode) return;
     
@@ -101,7 +96,6 @@ export default function ChatPanel({
     return () => clearInterval(interval);
   }, [isVoiceMode, isSpeaking]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       console.log('🧹 ChatPanel unmounting, cleaning up speech');
@@ -122,7 +116,6 @@ export default function ChatPanel({
     try {
       let response: string;
       
-      // Try Sarvam API first, fallback to mock if no API key
       try {
         response = await sendToLLM(newMessages);
       } catch (apiError) {
@@ -133,7 +126,6 @@ export default function ChatPanel({
       const assistantMessage: Message = { role: 'assistant', content: response };
       setMessages(prev => [...prev, assistantMessage]);
 
-      // Auto-speak response in voice mode
       console.log('🔊 Voice check:', {
         isVoiceMode,
         enableVoice: config.enableVoice,
@@ -170,14 +162,7 @@ export default function ChatPanel({
 
 
 
-  const formatMessage = (content: string) => {
-    // Simple markdown-like formatting
-    return content
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/`(.*?)`/g, '<code>$1</code>')
-      .replace(/\n/g, '<br>');
-  };
+  // formatMessage is now imported from utils
 
   return (
     <>
@@ -398,7 +383,6 @@ export default function ChatPanel({
         }
         
         
-        /* Voice Interface Styles */
         .voice-interface {
           display: flex;
           flex-direction: column;
@@ -498,7 +482,6 @@ export default function ChatPanel({
       <div className="chat-container">
         <div className="messages-container">
           {isVoiceMode ? (
-            // Voice mode - show voice interface
             <div className="voice-interface">
               {isListening && (
                 <div className="tap-to-speak">
@@ -528,8 +511,7 @@ export default function ChatPanel({
               )}
               
             </div>
-          ) : (
-            // Chat mode - show text messages
+          ) : (         
             <>
               {messages.filter(m => m.role !== 'system').length === 0 ? (
                 <div className="welcome-message">
