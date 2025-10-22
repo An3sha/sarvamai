@@ -1,8 +1,8 @@
-// src/widget/api.ts
+
 export type Role = 'user'|'assistant'|'system';
 export interface Message { role: Role; content: string; }
 
-// Sarvam AI API endpoints (based on official documentation)
+
 const SARVAM_BASE_URL = 'https://api.sarvam.ai';
 const SARVAM_CHAT_ENDPOINT = `${SARVAM_BASE_URL}/v1/chat/completions`;
 const SARVAM_TTS_ENDPOINT = `${SARVAM_BASE_URL}/text-to-speech`;
@@ -10,7 +10,7 @@ const SARVAM_STT_ENDPOINT = `${SARVAM_BASE_URL}/speech-to-text`;
 const SARVAM_TRANSLATE_ENDPOINT = `${SARVAM_BASE_URL}/translate`;
 const SARVAM_LID_ENDPOINT = `${SARVAM_BASE_URL}/language-identification`;
 
-// Get API key from config or environment
+
 const getApiKey = () => {
   const globalWindow = window as unknown as {
     AgentWidgetConfig?: {
@@ -23,10 +23,9 @@ const getApiKey = () => {
          '';
 };
 
-// Enhanced language mapping for Sarvam API (based on official documentation)
-// Supports all 22 scheduled languages of India
+
 const LANGUAGE_MAP: Record<string, string> = {
-  // Core languages (mayura:v1 and sarvam-translate:v1)
+
   'en': 'en-IN',    // English
   'hi': 'hi-IN',    // Hindi
   'ta': 'ta-IN',    // Tamil
@@ -54,7 +53,6 @@ const LANGUAGE_MAP: Record<string, string> = {
   'ur': 'ur-IN'     // Urdu
 };
 
-// Language display names for UI
 export const LANGUAGE_NAMES: Record<string, { native: string; english: string; flag: string }> = {
   'en': { native: 'English', english: 'English', flag: '🇺🇸' },
   'hi': { native: 'हिन्दी', english: 'Hindi', flag: '🇮🇳' },
@@ -88,14 +86,14 @@ export async function sendToLLM(messages: Message[]): Promise<string> {
     throw new Error('Sarvam API key not found. Please configure AgentWidgetConfig.sarvamApiKey');
   }
 
-  // Prepare messages for Sarvam API
+
   const formattedMessages = messages.map(msg => ({
     role: msg.role,
     content: msg.content
   }));
 
   const body = {
-    model: 'sarvam-m', // Sarvam's supported model as per documentation
+    model: 'sarvam-m', 
     messages: formattedMessages,
     max_tokens: 1000,
     temperature: 0.7,
@@ -119,7 +117,7 @@ export async function sendToLLM(messages: Message[]): Promise<string> {
 
     const data = await response.json();
     
-    // Handle Sarvam API response format
+  
     if (data.choices && data.choices[0]?.message?.content) {
       return data.choices[0].message.content;
     } else if (data.content) {
@@ -150,7 +148,7 @@ export async function synthesizeSpeech(text: string, language = 'en'): Promise<s
   const body = {
     text: truncatedText,
     language_code: LANGUAGE_MAP[language] || language,
-    voice: 'default', // Sarvam AI voice options
+    voice: 'default',
     speed: 1.0,
     pitch: 1.0,
     volume: 1.0
@@ -175,7 +173,7 @@ export async function synthesizeSpeech(text: string, language = 'en'): Promise<s
 
     const data = await response.json();
     console.log('✅ TTS API success:', { audioUrl: data.audio_url || data.audio });
-    return data.audio_url || data.audio; // Return audio URL or base64 data
+    return data.audio_url || data.audio; 
   } catch (error) {
     console.error('Error with TTS:', error);
     throw error;
@@ -225,7 +223,7 @@ export async function sendToLLMFallback(messages: Message[], language = 'en'): P
     return 'Hello! How can I help you today?';
   }
 
-  // Simple mock responses based on language
+
   const responses = {
     en: [
       "I understand you're asking about that. Let me help you with that.",
@@ -253,7 +251,7 @@ export async function sendToLLMFallback(messages: Message[], language = 'en'): P
   return randomResponse;
 }
 
-// Enhanced Translation API using Sarvam AI with advanced features
+
 export async function translateText(
   text: string, 
   targetLanguage: string, 
@@ -273,7 +271,6 @@ export async function translateText(
     throw new Error('Sarvam API key not found for translation');
   }
 
-  // Use sarvam-translate:v1 for better language support (22 languages)
   // Map source language to proper format
   const mappedSourceLanguage = sourceLanguage === 'auto' ? 'auto' : (LANGUAGE_MAP[sourceLanguage] || sourceLanguage);
   const mappedTargetLanguage = LANGUAGE_MAP[targetLanguage] || targetLanguage;
@@ -354,13 +351,13 @@ export async function translateMessages(
           content: message.content.substring(0, 50) + '...'
         });
         
-        // Don't translate system messages
+
         if (message.role === 'system') {
           console.log('⏭️ Skipping system message');
           return message;
         }
         
-        // Skip if already in target language
+
         if (sourceLanguage === targetLanguage) {
           console.log('⏭️ Skipping - same language');
           return message;
@@ -390,7 +387,7 @@ export async function translateMessages(
           };
         } catch (error) {
           console.warn(`❌ Failed to translate message: ${error}`);
-          return message; // Return original message if translation fails
+          return message; 
         }
       })
     );
@@ -399,11 +396,10 @@ export async function translateMessages(
     return translatedMessages;
   } catch (error) {
     console.error('❌ Error translating messages:', error);
-    return messages; // Return original messages if translation fails
+    return messages; 
   }
 }
 
-// Language Identification API using Sarvam AI
 export async function identifyLanguage(text: string): Promise<string> {
   const apiKey = getApiKey();
   

@@ -1,4 +1,4 @@
-// src/widget/index.tsx
+
 import { createRoot } from 'react-dom/client';
 import WidgetApp from './WidgetApp';
 import { loadConfig } from './settings';

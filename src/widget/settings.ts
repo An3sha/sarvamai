@@ -77,15 +77,15 @@ export interface AgentConfig {
     },
     enableVoice: true,
     context: 'You are a helpful AI assistant. Please provide clear, accurate, and helpful responses to user questions.',
-    languages: ['en', 'hi', 'ta', 'te', 'bn'], // Popular Indian languages
+    languages: ['en', 'hi', 'ta', 'te', 'bn'], 
     autoOpen: false,
     showWelcomeMessage: true,
     maxMessages: 50,
     placeholder: 'Type your message...',
     // New translation features
-    enableAutoTranslation: true, // Auto-translate when switching languages
-    translationMode: 'formal', // Use formal translation mode
-    enablePreprocessing: true // Enable preprocessing for better translations
+    enableAutoTranslation: true, 
+    translationMode: 'formal', 
+    enablePreprocessing: true 
   };
   
   export function loadConfig(): AgentConfig {
@@ -93,7 +93,7 @@ export interface AgentConfig {
     const cfg = (window as any).AgentWidgetConfig ?? {};
     const mergedConfig = { ...defaultConfig, ...cfg };
     
-    // Deep merge theme and agent objects
+
     if (cfg.theme) {
       mergedConfig.theme = { ...defaultConfig.theme, ...cfg.theme };
     }
@@ -147,7 +147,7 @@ export interface AgentConfig {
     };
   }
 
-  // Get language display info
+
   export function getLanguageInfo(languageCode: string) {
     return LANGUAGE_CONFIG[languageCode as keyof typeof LANGUAGE_CONFIG] || {
       name: languageCode,
